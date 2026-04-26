@@ -1,0 +1,619 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum LifeStatus {
+  ALIVE
+  DECEASED
+  UNKNOWN
+
+  @@map("life_status")
+}
+
+enum ClaimStatus {
+  PENDING
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+  DISPUTED
+
+  @@map("claim_status")
+}
+
+enum VerificationLevel {
+  UNVERIFIED
+  SELF_DECLARED
+  COMMUNITY_VERIFIED
+  DOCUMENT_DECLARED
+  DOCUMENT_VERIFIED
+  ADMIN_VERIFIED
+
+  @@map("verification_level")
+}
+
+enum UnionType {
+  CUSTOMARY
+  CIVIL
+  RELIGIOUS
+  FREE_UNION
+  UNKNOWN
+
+  @@map("union_type")
+}
+
+enum UnionStatus {
+  ACTIVE
+  ENDED
+  WIDOWED
+  UNKNOWN
+
+  @@map("union_status")
+}
+
+enum ParentRelationshipType {
+  BIOLOGICAL
+  CUSTOMARY_ADOPTIVE
+  LEGAL_ADOPTIVE
+  PRESUMED
+  STEP
+
+  @@map("parent_relationship_type")
+}
+
+enum DocumentType {
+  CNI_CAMEROUN
+  PASSPORT_CAMEROUN
+  PASSPORT_FOREIGN
+  ACTE_NAISSANCE
+  CARTE_CONSULAIRE
+  PERMIS_CONDUIRE
+  CARTE_ELECTEUR
+  CARTE_SCOLAIRE
+  OTHER
+
+  @@map("document_type")
+}
+
+enum DocumentVerificationStatus {
+  UNVERIFIED
+  SELF_DECLARED
+  COMMUNITY_VERIFIED
+  DOCUMENT_VERIFIED
+  ADMIN_VERIFIED
+  DISPUTED
+
+  @@map("document_verification_status")
+}
+
+enum NameType {
+  CIVIL
+  TRADITIONAL
+  NICKNAME
+  MARRIED
+  RELIGIOUS
+  FORMER
+
+  @@map("name_type")
+}
+
+enum DatePrecision {
+  EXACT
+  MONTH
+  YEAR
+  DECADE
+  APPROXIMATE
+  UNKNOWN
+
+  @@map("date_precision")
+}
+
+enum NotificationType {
+  INVITATION_RECEIVED
+  CLAIM_REQUEST
+  CLAIM_VALIDATED
+  MERGE_PROPOSAL
+  MODIFICATION_SUGGESTED
+  NEW_FAMILY_MEMBER
+  DECEASE_REPORTED
+  BIRTHDAY_REMINDER
+  MEMORIAL_REMINDER
+  DOCUMENT_VERIFIED
+  MATCH_FOUND_FOR_USER
+  POTENTIAL_MATCH_FOR_INVITER
+  KINSHIP_PROBE_RECEIVED
+  FAMILY_CODE_REDEEMED
+  OTHER
+
+  @@map("notification_type")
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model Account {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  phoneNumber        String    @unique @map("phone_number") @db.VarChar(20)
+  phoneCountryCode   String    @default("+237") @map("phone_country_code") @db.VarChar(5)
+  phoneOperator      String?   @map("phone_operator") @db.VarChar(20)
+  pinHash            String?   @map("pin_hash") @db.VarChar(255)
+  pinEnabled         Boolean   @default(false) @map("pin_enabled")
+  languagePreference String    @default("fr") @map("language_preference") @db.VarChar(5)
+  dataSaverMode      Boolean   @default(false) @map("data_saver_mode")
+  largeTextMode      Boolean   @default(false) @map("large_text_mode")
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz()
+  lastLoginIp        String?   @map("last_login_ip") @db.Inet
+  lastLoginDeviceId  String?   @map("last_login_device_id") @db.VarChar(255)
+  email              String?   @db.VarChar(255)
+  whatsappEnabled    Boolean   @default(true) @map("whatsapp_enabled")
+  isActive           Boolean   @default(true) @map("is_active")
+  isBanned           Boolean   @default(false) @map("is_banned")
+  bannedReason       String?   @map("banned_reason")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  personsCreated       Person[]             @relation("PersonCreatedBy")
+  personsUpdated       Person[]             @relation("PersonUpdatedBy")
+  personsClaimed       Person[]             @relation("PersonClaimedBy")
+  claims               Claim[]
+  contributions        Contribution[]
+  identityDocsAdded    IdentityDocument[]   @relation("DocAddedBy")
+  identityDocsVerified IdentityDocument[]   @relation("DocVerifiedBy")
+  sourcesAdded         Source[]
+  mediaUploaded        Media[]
+  invitationsSent      InvitationToken[]    @relation("InvitationSent")
+  invitationsUsed      InvitationToken[]    @relation("InvitationUsed")
+  notifications        Notification[]
+  verificationsSubmitted VerificationRequest[] @relation("VerifSubmittedBy")
+  verificationsAssigned  VerificationRequest[] @relation("VerifAssignedTo")
+  mergeProposalsCreated  MergeProposal[]    @relation("MergeProposedBy")
+  unionsCreated        Union[]
+  parentChildCreated   ParentChild[]
+  familyCodesGenerated FamilyCode[]
+  familyCodesUsed      FamilyCodeUse[]    @relation("FamilyCodeUsedBy")
+
+  @@map("accounts")
+}
+
+model Person {
+  id                    String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  displayName           String            @map("display_name") @db.VarChar(255)
+  normalizedName        String            @map("normalized_name") @db.VarChar(255)
+  nameSoundex           String?           @map("name_soundex") @db.VarChar(10)
+  nameMetaphone         String?           @map("name_metaphone") @db.VarChar(20)
+  gender                String?           @db.VarChar(1)
+  lifeStatus            LifeStatus        @default(UNKNOWN) @map("life_status")
+  deceasedAssumed       Boolean           @default(false) @map("deceased_assumed")
+  birthDate             DateTime?         @map("birth_date") @db.Date
+  birthDatePrecision    DatePrecision     @default(UNKNOWN) @map("birth_date_precision")
+  birthYearApproximate  Int?              @map("birth_year_approximate")
+  birthDateText         String?           @map("birth_date_text") @db.VarChar(100)
+  deceasedDate          DateTime?         @map("deceased_date") @db.Date
+  deceasedDatePrecision DatePrecision     @default(UNKNOWN) @map("deceased_date_precision")
+  deceasedYearApproximate Int?            @map("deceased_year_approximate")
+  deceasedDateText      String?           @map("deceased_date_text") @db.VarChar(100)
+  birthPlace            String?           @map("birth_place") @db.VarChar(255)
+  birthRegion           String?           @map("birth_region") @db.VarChar(100)
+  birthCountry          String?           @default("Cameroun") @map("birth_country") @db.VarChar(100)
+  deceasedPlace         String?           @map("deceased_place") @db.VarChar(255)
+  deceasedRegion        String?           @map("deceased_region") @db.VarChar(100)
+  deceasedCountry       String?           @map("deceased_country") @db.VarChar(100)
+  currentResidencePlace String?           @map("current_residence_place") @db.VarChar(255)
+  currentResidenceCountry String?         @map("current_residence_country") @db.VarChar(100)
+  ethnicity             String?           @db.VarChar(100)
+  villageOrigin         String?           @map("village_origin") @db.VarChar(255)
+  chefferie             String?           @db.VarChar(255)
+  biography             String?
+  occupation            String?           @db.VarChar(255)
+  phoneNumber           String?           @map("phone_number") @db.VarChar(20)
+  primaryPhotoId        String?           @map("primary_photo_id") @db.Uuid
+  hasPhoto              Boolean           @default(false) @map("has_photo")
+  verificationLevel     VerificationLevel @default(UNVERIFIED) @map("verification_level")
+  confidenceScore       Decimal           @default(0.0) @map("confidence_score") @db.Decimal(3, 2)
+  createdByAccountId    String?           @map("created_by_account_id") @db.Uuid
+  updatedByAccountId    String?           @map("updated_by_account_id") @db.Uuid
+  claimedByAccountId    String?           @map("claimed_by_account_id") @db.Uuid
+  claimVerifiedAt       DateTime?         @map("claim_verified_at") @db.Timestamptz()
+  isPublic              Boolean           @default(false) @map("is_public")
+  privacyLevel          Int               @default(1) @map("privacy_level")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt             DateTime?         @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  createdByAccount  Account? @relation("PersonCreatedBy", fields: [createdByAccountId], references: [id])
+  updatedByAccount  Account? @relation("PersonUpdatedBy", fields: [updatedByAccountId], references: [id])
+  claimedByAccount  Account? @relation("PersonClaimedBy", fields: [claimedByAccountId], references: [id])
+
+  names              PersonName[]
+  identityDocuments  IdentityDocument[]
+  claims             Claim[]
+  parentsOf          ParentChild[]      @relation("ParentOfChild")
+  childrenOf         ParentChild[]      @relation("ChildOfParent")
+  unionPartners      UnionPartner[]
+  sourcesPerson      Source[]           @relation("SourcePerson")
+  invitationTargets  InvitationToken[]
+  mergeProposalsA    MergeProposal[]    @relation("MergePersonA")
+  mergeProposalsB    MergeProposal[]    @relation("MergePersonB")
+  mergeResolvedInto  MergeProposal[]    @relation("MergeResolvedInto")
+  photos             Media[]            @relation("PersonPhotos")
+
+  @@index([nameSoundex], map: "idx_persons_soundex")
+  @@index([nameMetaphone], map: "idx_persons_metaphone")
+  @@index([birthYearApproximate], map: "idx_persons_birth_year")
+  @@index([villageOrigin], map: "idx_persons_village")
+  @@index([claimedByAccountId], map: "idx_persons_claimed")
+  @@index([lifeStatus], map: "idx_persons_life_status")
+  @@index([createdByAccountId], map: "idx_persons_created_by")
+  @@map("persons")
+}
+
+model PersonName {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  personId           String    @map("person_id") @db.Uuid
+  nameType           NameType  @map("name_type")
+  fullName           String    @map("full_name") @db.VarChar(255)
+  firstName          String?   @map("first_name") @db.VarChar(100)
+  lastName           String?   @map("last_name") @db.VarChar(100)
+  middleNames        String?   @map("middle_names") @db.VarChar(255)
+  normalizedFullName String    @map("normalized_full_name") @db.VarChar(255)
+  soundexCode        String?   @map("soundex_code") @db.VarChar(10)
+  metaphoneCode      String?   @map("metaphone_code") @db.VarChar(20)
+  isPrimary          Boolean   @default(false) @map("is_primary")
+  usedFromDate       DateTime? @map("used_from_date") @db.Date
+  usedUntilDate      DateTime? @map("used_until_date") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId], map: "idx_person_names_person")
+  @@map("person_names")
+}
+
+model Union {
+  id                   String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  unionType            UnionType     @default(UNKNOWN) @map("union_type")
+  status               UnionStatus   @default(UNKNOWN)
+  startDate            DateTime?     @map("start_date") @db.Date
+  startDatePrecision   DatePrecision @default(UNKNOWN) @map("start_date_precision")
+  startYearApproximate Int?          @map("start_year_approximate")
+  startDateText        String?       @map("start_date_text") @db.VarChar(100)
+  endDate              DateTime?     @map("end_date") @db.Date
+  endDatePrecision     DatePrecision @default(UNKNOWN) @map("end_date_precision")
+  endYearApproximate   Int?          @map("end_year_approximate")
+  endReason            String?       @map("end_reason") @db.VarChar(50)
+  place                String?       @db.VarChar(255)
+  notes                String?
+  createdByAccountId   String?       @map("created_by_account_id") @db.Uuid
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt            DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt            DateTime?     @map("deleted_at") @db.Timestamptz()
+
+  createdByAccount Account?       @relation(fields: [createdByAccountId], references: [id])
+  partners         UnionPartner[]
+  parentChildren   ParentChild[]
+  sourcesUnion     Source[]        @relation("SourceUnion")
+
+  @@map("unions")
+}
+
+model UnionPartner {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  unionId   String   @map("union_id") @db.Uuid
+  personId  String   @map("person_id") @db.Uuid
+  role      String?  @db.VarChar(50)
+  wifeRank  Int?     @map("wife_rank")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  union  Union  @relation(fields: [unionId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([unionId, personId])
+  @@index([unionId], map: "idx_union_partners_union")
+  @@index([personId], map: "idx_union_partners_person")
+  @@map("union_partners")
+}
+
+model ParentChild {
+  id                 String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  parentId           String                 @map("parent_id") @db.Uuid
+  childId            String                 @map("child_id") @db.Uuid
+  relationshipType   ParentRelationshipType @default(BIOLOGICAL) @map("relationship_type")
+  unionId            String?                @map("union_id") @db.Uuid
+  confidence         Decimal                @default(1.0) @db.Decimal(3, 2)
+  notes              String?
+  createdByAccountId String?                @map("created_by_account_id") @db.Uuid
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt          DateTime?              @map("deleted_at") @db.Timestamptz()
+
+  parent           Person   @relation("ParentOfChild", fields: [parentId], references: [id], onDelete: Cascade)
+  child            Person   @relation("ChildOfParent", fields: [childId], references: [id], onDelete: Cascade)
+  union            Union?   @relation(fields: [unionId], references: [id], onDelete: SetNull)
+  createdByAccount Account? @relation(fields: [createdByAccountId], references: [id])
+
+  @@unique([parentId, childId, relationshipType])
+  @@map("parent_child")
+}
+
+model Claim {
+  id                    String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  accountId             String            @map("account_id") @db.Uuid
+  personId              String            @map("person_id") @db.Uuid
+  status                ClaimStatus       @default(PENDING)
+  verificationLevel     VerificationLevel @default(SELF_DECLARED) @map("verification_level")
+  validatedByAccountIds String[]          @default([]) @map("validated_by_account_ids") @db.Uuid
+  validationCount       Int               @default(0) @map("validation_count")
+  disputedByClaimId     String?           @map("disputed_by_claim_id") @db.Uuid
+  disputeReason         String?           @map("dispute_reason")
+  evidence              String?
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  resolvedAt            DateTime?         @map("resolved_at") @db.Timestamptz()
+
+  account        Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  person         Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  disputedByClaim Claim?  @relation("ClaimDispute", fields: [disputedByClaimId], references: [id])
+  disputesClaimed Claim[] @relation("ClaimDispute")
+
+  @@unique([accountId, personId])
+  @@index([accountId], map: "idx_claims_account")
+  @@index([personId], map: "idx_claims_person")
+  @@index([status], map: "idx_claims_status")
+  @@map("claims")
+}
+
+model IdentityDocument {
+  id                      String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  personId                String                     @map("person_id") @db.Uuid
+  documentType            DocumentType               @map("document_type")
+  documentNumberHash      String                     @map("document_number_hash") @db.VarChar(64)
+  documentNumberLast4     String?                    @map("document_number_last4") @db.VarChar(4)
+  documentNumberEncrypted String?                    @map("document_number_encrypted")
+  issuingAuthority        String?                    @map("issuing_authority") @db.VarChar(255)
+  issuingPlace            String?                    @map("issuing_place") @db.VarChar(255)
+  issueDate               DateTime?                  @map("issue_date") @db.Date
+  expiryDate              DateTime?                  @map("expiry_date") @db.Date
+  scanFileId              String?                    @map("scan_file_id") @db.Uuid
+  scanExpiresAt           DateTime?                  @map("scan_expires_at") @db.Timestamptz()
+  verificationStatus      DocumentVerificationStatus @default(SELF_DECLARED) @map("verification_status")
+  verifiedByAccountId     String?                    @map("verified_by_account_id") @db.Uuid
+  verifiedAt              DateTime?                  @map("verified_at") @db.Timestamptz()
+  ocrExtractedData        Json?                      @map("ocr_extracted_data")
+  addedByAccountId        String?                    @map("added_by_account_id") @db.Uuid
+  createdAt               DateTime                   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt               DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt               DateTime?                  @map("deleted_at") @db.Timestamptz()
+
+  person          Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  addedByAccount  Account? @relation("DocAddedBy", fields: [addedByAccountId], references: [id])
+  verifiedByAccount Account? @relation("DocVerifiedBy", fields: [verifiedByAccountId], references: [id])
+
+  @@index([personId], map: "idx_identity_docs_person")
+  @@index([documentNumberHash], map: "idx_identity_docs_hash")
+  @@index([documentType], map: "idx_identity_docs_type")
+  @@map("identity_documents")
+}
+
+model Contribution {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  accountId  String   @map("account_id") @db.Uuid
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String   @map("entity_id") @db.Uuid
+  action     String   @db.VarChar(50)
+  fieldName  String?  @map("field_name") @db.VarChar(100)
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@index([accountId], map: "idx_contributions_account")
+  @@index([entityType, entityId], map: "idx_contributions_entity")
+  @@index([createdAt(sort: Desc)], map: "idx_contributions_created")
+  @@map("contributions")
+}
+
+model Source {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  personId         String?   @map("person_id") @db.Uuid
+  unionId          String?   @map("union_id") @db.Uuid
+  sourceType       String?   @map("source_type") @db.VarChar(50)
+  title            String?   @db.VarChar(255)
+  description      String?
+  mediaFileId      String?   @map("media_file_id") @db.Uuid
+  audioTranscript  String?   @map("audio_transcript")
+  addedByAccountId String?   @map("added_by_account_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz()
+
+  person         Person?  @relation("SourcePerson", fields: [personId], references: [id], onDelete: Cascade)
+  union          Union?   @relation("SourceUnion", fields: [unionId], references: [id], onDelete: Cascade)
+  addedByAccount Account? @relation(fields: [addedByAccountId], references: [id])
+
+  @@index([personId], map: "idx_sources_person")
+  @@index([unionId], map: "idx_sources_union")
+  @@map("sources")
+}
+
+model Media {
+  id                  String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fileType            String    @map("file_type") @db.VarChar(20)
+  mimeType            String?   @map("mime_type") @db.VarChar(50)
+  fileSizeBytes       BigInt?   @map("file_size_bytes")
+  s3Bucket            String    @map("s3_bucket") @db.VarChar(100)
+  s3Key               String    @map("s3_key") @db.VarChar(500)
+  cdnUrl              String?   @map("cdn_url") @db.VarChar(500)
+  isEncrypted         Boolean   @default(false) @map("is_encrypted")
+  encryptionKeyId     String?   @map("encryption_key_id") @db.VarChar(100)
+  width               Int?
+  height              Int?
+  durationSeconds     Int?      @map("duration_seconds")
+  personId            String?   @map("person_id") @db.Uuid
+  photoYear           Int?      @map("photo_year")
+  uploadedByAccountId String?   @map("uploaded_by_account_id") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt           DateTime? @map("expires_at") @db.Timestamptz()
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz()
+
+  uploadedByAccount Account? @relation(fields: [uploadedByAccountId], references: [id])
+  person            Person?  @relation("PersonPhotos", fields: [personId], references: [id])
+
+  @@index([uploadedByAccountId], map: "idx_media_account")
+  @@index([personId], map: "idx_media_person")
+  @@map("media")
+}
+
+model InvitationToken {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token             String    @unique @db.VarChar(64)
+  inviterAccountId  String    @map("inviter_account_id") @db.Uuid
+  targetPersonId    String?   @map("target_person_id") @db.Uuid
+  targetPhoneNumber String?   @map("target_phone_number") @db.VarChar(20)
+  relationshipHint  String?   @map("relationship_hint") @db.VarChar(100)
+  usedAt            DateTime? @map("used_at") @db.Timestamptz()
+  usedByAccountId   String?   @map("used_by_account_id") @db.Uuid
+  expiresAt         DateTime  @default(dbgenerated("NOW() + INTERVAL '90 days'")) @map("expires_at") @db.Timestamptz()
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  inviterAccount Account @relation("InvitationSent", fields: [inviterAccountId], references: [id])
+  usedByAccount  Account? @relation("InvitationUsed", fields: [usedByAccountId], references: [id])
+  targetPerson   Person?  @relation(fields: [targetPersonId], references: [id])
+
+  @@index([token], map: "idx_invitation_token")
+  @@index([inviterAccountId], map: "idx_invitation_inviter")
+  @@index([targetPhoneNumber], map: "idx_invitation_phone")
+  @@map("invitation_tokens")
+}
+
+model FamilyCode {
+  id         String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code       String          @unique @db.VarChar(20)
+  accountId  String          @map("account_id") @db.Uuid
+  label      String?         @db.VarChar(100)
+  maxUses    Int             @default(50) @map("max_uses")
+  usedCount  Int             @default(0) @map("used_count")
+  expiresAt  DateTime        @default(dbgenerated("NOW() + INTERVAL '90 days'")) @map("expires_at") @db.Timestamptz()
+  revokedAt  DateTime?       @map("revoked_at") @db.Timestamptz()
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+
+  account    Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  uses       FamilyCodeUse[]
+
+  @@index([code], map: "idx_family_code_code")
+  @@index([accountId], map: "idx_family_code_account")
+  @@map("family_codes")
+}
+
+model FamilyCodeUse {
+  id              String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  familyCodeId    String     @map("family_code_id") @db.Uuid
+  usedByAccountId String     @map("used_by_account_id") @db.Uuid
+  usedAt          DateTime   @default(now()) @map("used_at") @db.Timestamptz()
+
+  familyCode    FamilyCode @relation(fields: [familyCodeId], references: [id], onDelete: Cascade)
+  usedByAccount Account    @relation("FamilyCodeUsedBy", fields: [usedByAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([familyCodeId, usedByAccountId], map: "uq_family_code_use")
+  @@map("family_code_uses")
+}
+
+model VerificationRequest {
+  id                    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  requestType           String    @map("request_type") @db.VarChar(50)
+  relatedEntityType     String?   @map("related_entity_type") @db.VarChar(50)
+  relatedEntityId       String?   @map("related_entity_id") @db.Uuid
+  submittedByAccountId  String?   @map("submitted_by_account_id") @db.Uuid
+  submittedAt           DateTime  @default(now()) @map("submitted_at") @db.Timestamptz()
+  status                String    @default("PENDING") @db.VarChar(20)
+  priority              Int       @default(5)
+  assignedModeratorId   String?   @map("assigned_moderator_id") @db.Uuid
+  resolvedAt            DateTime? @map("resolved_at") @db.Timestamptz()
+  resolutionNote        String?   @map("resolution_note")
+  data                  Json?
+
+  submittedByAccount Account? @relation("VerifSubmittedBy", fields: [submittedByAccountId], references: [id])
+  assignedModerator  Account? @relation("VerifAssignedTo", fields: [assignedModeratorId], references: [id])
+
+  @@index([status, priority], map: "idx_verif_status_priority")
+  @@index([submittedByAccountId], map: "idx_verif_submitted_by")
+  @@map("verification_requests")
+}
+
+model MergeProposal {
+  id                    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  personAId             String    @map("person_a_id") @db.Uuid
+  personBId             String    @map("person_b_id") @db.Uuid
+  matchScore            Decimal   @map("match_score") @db.Decimal(3, 2)
+  matchingSignals       Json?     @map("matching_signals")
+  status                String    @default("PENDING") @db.VarChar(20)
+  proposedBy            String?   @map("proposed_by") @db.VarChar(20)
+  proposedByAccountId   String?   @map("proposed_by_account_id") @db.Uuid
+  reviewedByAccountIds  String[]  @default([]) @map("reviewed_by_account_ids") @db.Uuid
+  acceptedByAccountIds  String[]  @default([]) @map("accepted_by_account_ids") @db.Uuid
+  rejectedByAccountIds  String[]  @default([]) @map("rejected_by_account_ids") @db.Uuid
+  resolvedAt            DateTime? @map("resolved_at") @db.Timestamptz()
+  resolvedIntoPersonId  String?   @map("resolved_into_person_id") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  personA              Person   @relation("MergePersonA", fields: [personAId], references: [id], onDelete: Cascade)
+  personB              Person   @relation("MergePersonB", fields: [personBId], references: [id], onDelete: Cascade)
+  resolvedIntoPerson   Person?  @relation("MergeResolvedInto", fields: [resolvedIntoPersonId], references: [id])
+  proposedByAccount    Account? @relation("MergeProposedBy", fields: [proposedByAccountId], references: [id])
+
+  @@index([status], map: "idx_merge_status")
+  @@index([personAId, personBId], map: "idx_merge_persons")
+  @@map("merge_proposals")
+}
+
+model Notification {
+  id                String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  accountId         String           @map("account_id") @db.Uuid
+  notificationType  NotificationType @map("notification_type")
+  title             String           @db.VarChar(255)
+  body              String?
+  relatedEntityType String?          @map("related_entity_type") @db.VarChar(50)
+  relatedEntityId   String?          @map("related_entity_id") @db.Uuid
+  actionUrl         String?          @map("action_url") @db.VarChar(500)
+  channels          String[]         @default(["push"])
+  sentAt            DateTime?        @map("sent_at") @db.Timestamptz()
+  isRead            Boolean          @default(false) @map("is_read")
+  readAt            DateTime?        @map("read_at") @db.Timestamptz()
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, isRead], map: "idx_notifications_account")
+  @@index([createdAt(sort: Desc)], map: "idx_notifications_created")
+  @@map("notifications")
+}
+
+model OtpRequest {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  phoneNumber String    @map("phone_number") @db.VarChar(20)
+  otpHash     String    @map("otp_hash") @db.VarChar(64)
+  channel     String    @db.VarChar(20)
+  attempts    Int       @default(0)
+  verified    Boolean   @default(false)
+  verifiedAt  DateTime? @map("verified_at") @db.Timestamptz()
+  ipAddress   String?   @map("ip_address") @db.Inet
+  deviceId    String?   @map("device_id") @db.VarChar(255)
+  expiresAt   DateTime  @default(dbgenerated("NOW() + INTERVAL '5 minutes'")) @map("expires_at") @db.Timestamptz()
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([phoneNumber, createdAt(sort: Desc)], map: "idx_otp_phone")
+  @@map("otp_requests")
+}

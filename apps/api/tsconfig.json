@@ -1,0 +1,14 @@
+{
+  "extends": "@origin/config/tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "isolatedModules": false,
+    "strictPropertyInitialization": false,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src"]
+}

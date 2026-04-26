@@ -1,0 +1,216 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* SPEC colors */
+  --color-forest: #2D7A4B;
+  --color-forest-light: #3D9A5F;
+  --color-forest-dark: #1D5A35;
+  --color-terracotta: #C8663B;
+  --color-terracotta-light: #D8865B;
+  --color-terracotta-dark: #A8462B;
+  --color-ochre: #D9A441;
+  --color-ochre-light: #E9C461;
+  --color-ochre-dark: #B98421;
+  --color-deep-blue: #1E3A5F;
+  --color-deep-blue-light: #2E5A8F;
+  --color-sand: #F5EFE0;
+  --color-sand-dark: #E5DFD0;
+  --color-off-white: #FAFAF5;
+  --color-charcoal: #1A1A1A;
+  --color-error: #C8453B;
+  --color-error-light: #FEE2E2;
+  --color-success: #2D7A4B;
+  --color-success-light: #DCFCE7;
+  --color-warning: #D9A441;
+  --color-warning-light: #FEF9C3;
+
+  /* Spacing scale */
+  --spacing-18: 4.5rem;
+  --spacing-88: 22rem;
+  --spacing-128: 32rem;
+
+  /* Border radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-elevated: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+}
+
+/* CSS variables for shadcn/ui compatibility */
+:root {
+  --background: var(--color-off-white);
+  --foreground: var(--color-charcoal);
+  --card: #ffffff;
+  --card-foreground: var(--color-charcoal);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-charcoal);
+  --primary: var(--color-forest);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-sand);
+  --secondary-foreground: var(--color-charcoal);
+  --muted: var(--color-sand);
+  --muted-foreground: #737373;
+  --accent: var(--color-sand);
+  --accent-foreground: var(--color-charcoal);
+  --destructive: var(--color-error);
+  --destructive-foreground: #ffffff;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: var(--color-forest);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-[var(--border)];
+  }
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased;
+  }
+}
+
+/* ============================================
+ * Origin brand animations
+ * ============================================ */
+
+@keyframes origin-grow {
+  0%   { transform: scale(0.92) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0);      opacity: 1; }
+}
+
+@keyframes origin-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-6px) rotate(1.5deg); }
+}
+
+@keyframes origin-drift {
+  0%   { transform: translate(0, 100vh) rotate(0deg);   opacity: 0; }
+  10%  { opacity: 0.55; }
+  90%  { opacity: 0.55; }
+  100% { transform: translate(var(--dx, 80px), -120px) rotate(var(--rot, 360deg)); opacity: 0; }
+}
+
+@keyframes origin-fade-up {
+  0%   { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes origin-pulse-soft {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+@keyframes origin-shimmer {
+  0%   { background-position: -200% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes origin-roots-draw {
+  0%   { stroke-dashoffset: 800; opacity: 0; }
+  15%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes origin-kente-shift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 120px 0; }
+}
+
+@keyframes origin-ripple {
+  0%   { transform: scale(0.35); opacity: 0;    }
+  15%  { opacity: 0.55; }
+  100% { transform: scale(1.4);  opacity: 0;    }
+}
+
+@keyframes origin-wave {
+  0%   { transform: scale(0.2); opacity: 0;   }
+  20%  { opacity: 0.75;                        }
+  100% { transform: scale(2.2); opacity: 0;   }
+}
+
+@keyframes origin-leaf-evaporate {
+  /* Leaf detaches from the canopy and drifts upward while rotating and
+     fading, until it vanishes into the sky. CSS custom properties let
+     each leaf pick its own drift and rotation. */
+  0%   { transform: translate(0, 0) rotate(0deg) scale(1);   opacity: 0;    }
+  12%  { opacity: 0.85; }
+  65%  { opacity: 0.6;  }
+  100% {
+    transform: translate(var(--dx, 14px), var(--dy, -110px))
+               rotate(var(--rot, 70deg))
+               scale(var(--sc, 0.6));
+    opacity: 0;
+  }
+}
+
+@keyframes origin-flow-dash {
+  /* Positive offset shifts the dash pattern against the path direction,
+     so dashes travel from the bottom (root zone) toward the top (canopy)
+     — visualising energy rising through the tree. */
+  0%   { stroke-dashoffset: 0;   }
+  100% { stroke-dashoffset: 120; }
+}
+
+.anim-grow       { animation: origin-grow 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-float      { animation: origin-float 6s ease-in-out infinite; }
+.anim-drift      { animation: origin-drift 22s linear infinite; }
+.anim-fade-up    { animation: origin-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-pulse-soft { animation: origin-pulse-soft 3.5s ease-in-out infinite; }
+.anim-roots      { animation: origin-roots-draw 2.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-kente      { animation: origin-kente-shift 16s linear infinite; }
+.anim-ripple     { animation: origin-ripple 4s ease-out infinite; transform-origin: center; }
+.anim-wave       {
+  animation: origin-wave 5s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.anim-evaporate  {
+  animation: origin-leaf-evaporate 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.anim-flow       {
+  stroke-dasharray: 8 18;
+  animation: origin-flow-dash 2.6s linear infinite;
+}
+
+.anim-delay-100  { animation-delay: 0.1s; }
+.anim-delay-200  { animation-delay: 0.2s; }
+.anim-delay-300  { animation-delay: 0.3s; }
+.anim-delay-400  { animation-delay: 0.4s; }
+.anim-delay-600  { animation-delay: 0.6s; }
+.anim-delay-800  { animation-delay: 0.8s; }
+.anim-delay-1200 { animation-delay: 1.2s; }
+
+/* Gold shimmer overlay — use on a child element absolutely positioned. */
+.origin-shimmer-bg {
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: origin-shimmer 3.2s ease-in-out infinite;
+}
+
+/* Subtle kente weave backdrop (repeating diagonal color bands). */
+.origin-kente-bg {
+  background-image: repeating-linear-gradient(
+    115deg,
+    var(--color-forest) 0 4px,
+    var(--color-ochre) 4px 8px,
+    var(--color-terracotta) 8px 12px,
+    var(--color-deep-blue) 12px 16px
+  );
+  background-size: 120px 120px;
+}

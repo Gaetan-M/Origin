@@ -1,0 +1,11 @@
+export * from './client';
+export * as authApi from './auth';
+export * as personsApi from './persons';
+export * as relationshipsApi from './relationships';
+export * as accountsApi from './accounts';
+export * as notificationsApi from './notifications';
+export * as claimsApi from './claims';
+export * as identityDocumentsApi from './identity-documents';
+export * as mediaApi from './media';
+export * as matchingApi from './matching';
+export * as invitationsApi from './invitations';

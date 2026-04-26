@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build outputs
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# Turbo
+.turbo/
+
+# Coverage
+coverage/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.g.dart
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+apps/api/prisma/*.db
+
+# Local dev scratch — screenshots, temp scripts
+.tmp/
+debug/
