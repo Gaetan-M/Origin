@@ -11,5 +11,6 @@ module.exports = {
   rules: {
     ...require('@origin/config/eslint-base').rules,
     '@typescript-eslint/explicit-function-return-type': 'off',
+    'react/no-unescaped-entities': 'off',
   },
 };
