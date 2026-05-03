@@ -136,6 +136,24 @@ enum NotificationType {
   @@map("notification_type")
 }
 
+enum AccountRole {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+
+  @@map("account_role")
+}
+
+enum AdminActionSeverity {
+  INFO
+  NOTICE
+  WARNING
+  CRITICAL
+
+  @@map("admin_action_severity")
+}
+
 // ============================================
 // MODELS
 // ============================================
@@ -158,11 +176,24 @@ model Account {
   isActive           Boolean   @default(true) @map("is_active")
   isBanned           Boolean   @default(false) @map("is_banned")
   bannedReason       String?   @map("banned_reason")
+  bannedAt           DateTime? @map("banned_at") @db.Timestamptz()
+  bannedByAccountId  String?   @map("banned_by_account_id") @db.Uuid
+  role               AccountRole @default(USER)
+  roleAssignedAt     DateTime? @map("role_assigned_at") @db.Timestamptz()
+  roleAssignedByAccountId String? @map("role_assigned_by_account_id") @db.Uuid
+  fullName           String?   @map("full_name") @db.VarChar(255)
+  notes              String?   @map("admin_notes")
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
+  bannedByAccount       Account?             @relation("AccountBannedBy", fields: [bannedByAccountId], references: [id])
+  bannedAccounts        Account[]            @relation("AccountBannedBy")
+  roleAssignedByAccount Account?             @relation("AccountRoleAssignedBy", fields: [roleAssignedByAccountId], references: [id])
+  rolesAssigned         Account[]            @relation("AccountRoleAssignedBy")
+  adminAuditLogsActed   AdminAuditLog[]      @relation("AdminAuditActor")
+  adminAuditLogsTargeted AdminAuditLog[]     @relation("AdminAuditTargetAccount")
   personsCreated       Person[]             @relation("PersonCreatedBy")
   personsUpdated       Person[]             @relation("PersonUpdatedBy")
   personsClaimed       Person[]             @relation("PersonClaimedBy")
@@ -183,6 +214,9 @@ model Account {
   familyCodesGenerated FamilyCode[]
   familyCodesUsed      FamilyCodeUse[]    @relation("FamilyCodeUsedBy")
 
+  @@index([role], map: "idx_accounts_role")
+  @@index([isBanned, deletedAt], map: "idx_accounts_status")
+  @@index([createdAt(sort: Desc)], map: "idx_accounts_created")
   @@map("accounts")
 }
 
@@ -616,4 +650,41 @@ model OtpRequest {
 
   @@index([phoneNumber, createdAt(sort: Desc)], map: "idx_otp_phone")
   @@map("otp_requests")
+}
+
+// ============================================
+// ADMIN AUDIT LOG
+// Append-only journal of every privileged action performed via the
+// admin dashboard. Distinct from `contributions` (which tracks user
+// edits to graph data) so admin oversight cannot be obscured by
+// rewriting domain history.
+// ============================================
+model AdminAuditLog {
+  id                  String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  actorAccountId      String              @map("actor_account_id") @db.Uuid
+  actorRole           AccountRole         @map("actor_role")
+  action              String              @db.VarChar(100)
+  category            String              @db.VarChar(50)
+  severity            AdminActionSeverity @default(INFO)
+  targetEntityType    String?             @map("target_entity_type") @db.VarChar(50)
+  targetEntityId      String?             @map("target_entity_id") @db.Uuid
+  targetAccountId     String?             @map("target_account_id") @db.Uuid
+  reason              String?
+  beforeState         Json?               @map("before_state")
+  afterState          Json?               @map("after_state")
+  metadata            Json?
+  ipAddress           String?             @map("ip_address") @db.Inet
+  userAgent           String?             @map("user_agent") @db.VarChar(500)
+  requestId           String?             @map("request_id") @db.VarChar(64)
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+
+  actorAccount  Account  @relation("AdminAuditActor", fields: [actorAccountId], references: [id])
+  targetAccount Account? @relation("AdminAuditTargetAccount", fields: [targetAccountId], references: [id])
+
+  @@index([actorAccountId, createdAt(sort: Desc)], map: "idx_admin_audit_actor")
+  @@index([targetEntityType, targetEntityId], map: "idx_admin_audit_target_entity")
+  @@index([targetAccountId, createdAt(sort: Desc)], map: "idx_admin_audit_target_account")
+  @@index([category, createdAt(sort: Desc)], map: "idx_admin_audit_category")
+  @@index([createdAt(sort: Desc)], map: "idx_admin_audit_created")
+  @@map("admin_audit_logs")
 }

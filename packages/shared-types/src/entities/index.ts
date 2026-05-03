@@ -10,6 +10,8 @@ import type {
   NameType,
   DatePrecision,
   NotificationType,
+  AccountRole,
+  AdminActionSeverity,
 } from '../enums/index.js';
 
 export interface Account {
@@ -25,8 +27,55 @@ export interface Account {
   email: string | null;
   whatsappEnabled: boolean;
   isActive: boolean;
+  role: AccountRole;
+  fullName: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AdminAccount extends Account {
+  isBanned: boolean;
+  bannedReason: string | null;
+  bannedAt: string | null;
+  bannedByAccountId: string | null;
+  roleAssignedAt: string | null;
+  roleAssignedByAccountId: string | null;
+  lastLoginIp: string | null;
+  lastLoginDeviceId: string | null;
+  notes: string | null;
+  deletedAt: string | null;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  actorAccountId: string;
+  actorRole: AccountRole;
+  action: string;
+  category: string;
+  severity: AdminActionSeverity;
+  targetEntityType: string | null;
+  targetEntityId: string | null;
+  targetAccountId: string | null;
+  reason: string | null;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface AdminDashboardKpis {
+  accounts: { total: number; active: number; banned: number; deleted: number; new7d: number; new30d: number };
+  persons: { total: number; deceased: number; alive: number; orphan: number; new7d: number };
+  claims: { pending: number; verified: number; disputed: number };
+  moderation: { pendingMerges: number; pendingVerifications: number; pendingDocuments: number };
+  contributions: { last24h: number; last7d: number };
+}
+
+export interface AdminGrowthPoint {
+  date: string;
+  accounts: number;
+  persons: number;
+  contributions: number;
 }
 
 export interface Person {

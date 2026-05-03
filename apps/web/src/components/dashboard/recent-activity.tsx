@@ -42,57 +42,61 @@ function formatRelativeDate(dateStr: string): string {
   return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(date);
 }
 
-export function RecentActivity() {
+export function RecentActivity({ compact = false }: { compact?: boolean } = {}) {
   const t = useT();
   const { data, isLoading } = useQuery({
     queryKey: ['contributions', 'recent'],
-    queryFn: () => getMyContributions({ page: 1, limit: 10 }),
+    queryFn: () => getMyContributions({ page: 1, limit: compact ? 3 : 10 }),
   });
 
-  const contributions = data?.data ?? [];
+  const contributions = (data?.data ?? []).slice(0, compact ? 3 : undefined);
+
+  // Compact mode: render the list bare so it can sit inside another container
+  // (used by the dashboard's SectionCard). Card wrapper is reserved for the
+  // full-page /notifications "Mon activite" tab.
+  const body = isLoading ? (
+    <div className="space-y-3">
+      {Array.from({ length: compact ? 2 : 3 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : contributions.length === 0 ? (
+    <EmptyState icon={Clock} title={t('dashboard.noActivity')} />
+  ) : (
+    <div className={compact ? 'space-y-2.5' : 'space-y-3'}>
+      {contributions.map((c: Contribution) => {
+        const Icon = getActionIcon(c.action);
+        return (
+          <div key={c.id} className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sand">
+              <Icon className="h-4 w-4 text-charcoal/60" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm text-charcoal">
+                {getActionLabel(c.action, c.entityType)}
+              </p>
+              <p className="text-xs text-charcoal/50">{formatRelativeDate(c.createdAt)}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  if (compact) return body;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">{t('dashboard.recentActivity')}</CardTitle>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="flex-1 space-y-1">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : contributions.length === 0 ? (
-          <EmptyState
-            icon={Clock}
-            title={t('dashboard.noActivity')}
-          />
-        ) : (
-          <div className="space-y-3">
-            {contributions.map((c: Contribution) => {
-              const Icon = getActionIcon(c.action);
-              return (
-                <div key={c.id} className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sand">
-                    <Icon className="h-4 w-4 text-charcoal/60" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-charcoal">{getActionLabel(c.action, c.entityType)}</p>
-                    <p className="text-xs text-charcoal/50">{formatRelativeDate(c.createdAt)}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
+      <CardContent>{body}</CardContent>
     </Card>
   );
 }

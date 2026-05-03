@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PhoneInput } from '@/components/auth/phone-input';
 import { OtpInput } from '@/components/auth/otp-input';
 import { useRequestOtp, useVerifyOtp } from '@/lib/hooks/use-auth';
+import {
+  useVerifyInvitation,
+  useConsumeInvitation,
+} from '@/lib/hooks/use-invitations';
 import { isValidCameroonPhone, formatPhoneDisplay } from '@/lib/utils/phone';
 import { OtpChannel } from '@origin/shared-types';
 import { FullPageSpinner } from '@/components/shared/loading-spinner';
@@ -20,8 +25,28 @@ import {
 type Step = 'phone' | 'otp';
 
 function LoginContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite') ?? undefined;
+
+  // When the user lands here via /auth/login?invite=TOKEN we pre-load the
+  // invitation context so we can (1) prefill the phone field and (2) consume
+  // the invitation right after a successful OTP verify.
+  const invitation = useVerifyInvitation(inviteToken);
+  const consumeInvitation = useConsumeInvitation();
+
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('+237');
+
+  // Prefill the phone field when the invitation we landed on already targets
+  // a specific phone number — saves the user from typing it twice. Guarded
+  // against re-runs by checking the field was still on its default '+237'.
+  useEffect(() => {
+    const targetPhone = invitation.data?.targetPhoneNumber;
+    if (targetPhone && phone === '+237') {
+      setPhone(targetPhone);
+    }
+  }, [invitation.data, phone]);
 
   const requestOtp = useRequestOtp();
   const verifyOtp = useVerifyOtp();
@@ -35,7 +60,7 @@ function LoginContent() {
       await requestOtp.mutateAsync({ phoneNumber: phone, channel: OtpChannel.SMS });
       setStep('otp');
     } catch {
-      toast.error('Impossible d\'envoyer le code. Reessaie.');
+      toast.error("Impossible d'envoyer le code. Reessaie.");
     }
   }
 
@@ -43,6 +68,19 @@ function LoginContent() {
     try {
       await verifyOtp.mutateAsync({ phoneNumber: phone, code });
       toast.success('Te voila connecte !');
+
+      // Right after auth: if an invite token came in via the URL, consume it
+      // so the new user is immediately wired up to the inviter's tree.
+      if (inviteToken) {
+        try {
+          await consumeInvitation.mutateAsync(inviteToken);
+          toast.success('Invitation acceptee !');
+        } catch {
+          // Don't break the login flow — toast already surfaces the cause.
+        }
+        const targetPersonId = invitation.data?.targetPerson?.id;
+        router.replace(targetPersonId ? `/persons/${targetPersonId}` : '/dashboard');
+      }
     } catch {
       toast.error('Code incorrect. Reessaie.');
     }

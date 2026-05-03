@@ -183,6 +183,8 @@ export class AuthService {
         email: true,
         whatsappEnabled: true,
         isActive: true,
+        role: true,
+        fullName: true,
         lastLoginAt: true,
         createdAt: true,
       },

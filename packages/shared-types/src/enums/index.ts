@@ -113,3 +113,32 @@ export enum OtpChannel {
   WHATSAPP = 'WHATSAPP',
   VOICE = 'VOICE',
 }
+
+export enum AccountRole {
+  USER = 'USER',
+  MODERATOR = 'MODERATOR',
+  ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+}
+
+export enum AdminActionSeverity {
+  INFO = 'INFO',
+  NOTICE = 'NOTICE',
+  WARNING = 'WARNING',
+  CRITICAL = 'CRITICAL',
+}
+
+/**
+ * Stable ordering for role comparisons. Higher means more powerful.
+ * Use isRoleAtLeast() instead of `>` directly to keep call sites clear.
+ */
+export const ROLE_RANK: Record<AccountRole, number> = {
+  [AccountRole.USER]: 0,
+  [AccountRole.MODERATOR]: 1,
+  [AccountRole.ADMIN]: 2,
+  [AccountRole.SUPER_ADMIN]: 3,
+};
+
+export function isRoleAtLeast(role: AccountRole, required: AccountRole): boolean {
+  return ROLE_RANK[role] >= ROLE_RANK[required];
+}

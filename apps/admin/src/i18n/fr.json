@@ -1,0 +1,406 @@
+{
+  "admin": {
+    "nav": {
+      "dashboard": "Tableau de bord",
+      "accounts": "Comptes",
+      "moderation": "Modération",
+      "persons": "Personnes",
+      "audit": "Journal d'audit",
+      "settings": "Paramètres"
+    },
+    "actions": {
+      "search": "Rechercher",
+      "filter": "Filtrer",
+      "refresh": "Actualiser",
+      "export": "Exporter",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "restore": "Restaurer",
+      "ban": "Bannir",
+      "unban": "Lever le bannissement",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "edit": "Modifier",
+      "viewDetails": "Voir le détail",
+      "copy": "Copier",
+      "confirm": "Confirmer",
+      "back": "Retour",
+      "logout": "Se déconnecter",
+      "reset": "Réinitialiser",
+      "apply": "Appliquer",
+      "promote": "Promouvoir",
+      "demote": "Rétrograder",
+      "changeRole": "Changer de rôle",
+      "assignToMe": "Prendre en charge",
+      "viewAll": "Voir tout"
+    },
+    "common": {
+      "loading": "Chargement...",
+      "empty": "Aucun élément à afficher",
+      "error": "Une erreur est survenue",
+      "total": "Total",
+      "page": "Page",
+      "of": "sur",
+      "yes": "Oui",
+      "no": "Non",
+      "optional": "Facultatif",
+      "required": "Obligatoire",
+      "none": "Aucun",
+      "all": "Tous",
+      "role": "Rôle",
+      "createdAt": "Créé le",
+      "updatedAt": "Mis à jour le",
+      "lastLogin": "Dernière connexion",
+      "status": "Statut",
+      "language": "Langue",
+      "signedInAs": "Connecté en tant que",
+      "reason": "Motif",
+      "reasonPlaceholder": "Décrivez précisément la raison (min. 10 caractères)...",
+      "auditedAction": "Cette action est enregistrée dans le journal d'audit.",
+      "criticalAction": "Cette action est CRITIQUE et irréversible. Pesez bien votre décision.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "cancel": "Annuler",
+      "errorGeneric": "Une erreur est survenue. Réessayez."
+    },
+    "roles": {
+      "USER": "Utilisateur",
+      "MODERATOR": "Modérateur",
+      "ADMIN": "Administrateur",
+      "SUPER_ADMIN": "Super-admin"
+    },
+    "severity": {
+      "INFO": "Info",
+      "NOTICE": "Notable",
+      "WARNING": "Avertissement",
+      "CRITICAL": "Critique"
+    },
+    "auth": {
+      "loginTitle": "Console d'administration",
+      "loginSubtitle": "Connectez-vous avec un compte autorisé pour accéder à la console.",
+      "phoneLabel": "Numéro de téléphone",
+      "phonePlaceholder": "+237 6XX XX XX XX",
+      "otpLabel": "Code OTP",
+      "otpPlaceholder": "Code à 6 chiffres",
+      "sendOtp": "Recevoir le code",
+      "verifyOtp": "Vérifier le code",
+      "loggingIn": "Connexion en cours...",
+      "otpSent": "Code envoyé. Vérifiez vos messages.",
+      "invalidPhone": "Numéro de téléphone invalide. Format attendu : +237XXXXXXXXX.",
+      "invalidOtp": "Code OTP invalide. Le code doit comporter 6 chiffres.",
+      "resend": "Renvoyer le code"
+    },
+    "forbidden": {
+      "title": "Accès refusé",
+      "message": "Votre compte est bien reconnu, mais il ne dispose pas des privilèges nécessaires pour accéder à la console d'administration. Si vous pensez qu'il s'agit d'une erreur, contactez un super-administrateur.",
+      "logout": "Se déconnecter"
+    },
+    "dashboard": {
+      "title": "Tableau de bord",
+      "subtitle": "Vue d'ensemble de la plateforme et de la file de modération.",
+      "growth": {
+        "title": "Croissance",
+        "range7": "7 jours",
+        "range30": "30 jours",
+        "range90": "90 jours",
+        "accounts": "Comptes",
+        "persons": "Personnes",
+        "contributions": "Contributions",
+        "empty": "Aucune donnée pour cette plage.",
+        "error": "Impossible de charger les données de croissance."
+      },
+      "activity": {
+        "title": "Activité récente",
+        "empty": "Pas d'activité enregistrée.",
+        "error": "Impossible de charger l'activité récente."
+      },
+      "contributors": {
+        "title": "Top contributeurs",
+        "range": "Période",
+        "contributions": "contributions",
+        "empty": "Aucun contributeur sur cette période.",
+        "error": "Impossible de charger les contributeurs."
+      },
+      "geo": {
+        "title": "Répartition géographique",
+        "country": "Par pays",
+        "village": "Par village",
+        "region": "Par région",
+        "empty": "Aucune donnée.",
+        "error": "Impossible de charger la répartition géographique."
+      },
+      "moderation": {
+        "title": "File de modération",
+        "claims": "Réclamations",
+        "merges": "Fusions",
+        "verifications": "Vérifications",
+        "documents": "Documents",
+        "error": "Impossible de charger la file."
+      },
+      "health": {
+        "title": "État du système",
+        "ok": "Opérationnel",
+        "degraded": "Dégradé",
+        "down": "Hors-ligne",
+        "database": "Base de données",
+        "media": "Stockage médias",
+        "uptime": "Temps de fonctionnement"
+      },
+      "kpi": {
+        "accounts": "Comptes",
+        "persons": "Personnes",
+        "claims": "Réclamations en attente",
+        "moderation": "File de modération",
+        "error": "Impossible de charger les indicateurs."
+      }
+    },
+    "accounts": {
+      "title": "Comptes",
+      "subtitle": "Gérer les comptes utilisateurs, les rôles et les sanctions.",
+      "actions": {
+        "viewDetails": "Voir le détail",
+        "edit": "Modifier",
+        "changeRole": "Changer de rôle",
+        "ban": "Bannir",
+        "unban": "Lever le bannissement",
+        "delete": "Supprimer",
+        "restore": "Restaurer"
+      },
+      "dialogs": {
+        "editTitle": "Modifier le compte"
+      },
+      "columns": {
+        "phone": "Téléphone",
+        "fullName": "Nom complet",
+        "role": "Rôle",
+        "status": "Statut",
+        "createdAt": "Créé le",
+        "lastLogin": "Dernière connexion",
+        "actions": "Actions"
+      },
+      "filters": {
+        "search": "Téléphone, email ou nom...",
+        "role": "Rôle",
+        "banned": "Bannissement",
+        "deleted": "Inclure les supprimés",
+        "hasClaim": "Avec réclamation",
+        "reset": "Réinitialiser"
+      },
+      "status": {
+        "active": "Actif",
+        "banned": "Banni",
+        "deleted": "Supprimé"
+      },
+      "stats": {
+        "claims": "Réclamations",
+        "persons": "Personnes",
+        "contributions": "Contributions"
+      },
+      "tabs": {
+        "profile": "Profil",
+        "activity": "Activité",
+        "audit": "Journal admin"
+      },
+      "edit": {
+        "title": "Modifier le compte",
+        "fullName": "Nom complet",
+        "email": "E-mail",
+        "notes": "Notes administrateur"
+      },
+      "ban": {
+        "title": "Bannir ce compte",
+        "description": "Ce compte ne pourra plus se connecter tant que le bannissement est actif.",
+        "reasonLabel": "Motif du bannissement"
+      },
+      "unban": {
+        "title": "Lever le bannissement",
+        "description": "Le compte pourra à nouveau se connecter."
+      },
+      "delete": {
+        "title": "Supprimer ce compte",
+        "description": "Le compte sera marqué comme supprimé (soft delete).",
+        "ack": "Je comprends que cette action est enregistrée dans le journal."
+      },
+      "restore": {
+        "title": "Restaurer ce compte",
+        "description": "Le compte redeviendra actif."
+      },
+      "role": {
+        "title": "Changer le rôle",
+        "newRole": "Nouveau rôle",
+        "warning": "Toute promotion vers ADMIN ou SUPER_ADMIN sera enregistrée comme CRITIQUE.",
+        "selfWarn": "Vous ne pouvez pas modifier votre propre rôle pour vous rétrograder."
+      },
+      "toasts": {
+        "updated": "Compte mis à jour",
+        "banned": "Compte banni",
+        "unbanned": "Bannissement levé",
+        "deleted": "Compte supprimé",
+        "restored": "Compte restauré",
+        "roleChanged": "Rôle mis à jour"
+      }
+    },
+    "moderation": {
+      "title": "Modération",
+      "subtitle": "File partagée des réclamations, fusions, vérifications et documents.",
+      "tabs": {
+        "claims": "Réclamations",
+        "merges": "Fusions",
+        "verifications": "Vérifications",
+        "documents": "Documents"
+      },
+      "decisionBanner": "Toutes les actions de modération sont auditées.",
+      "claim": {
+        "approve": "Approuver la réclamation",
+        "reject": "Rejeter la réclamation",
+        "dispute": "Marquer en litige",
+        "evidence": "Justificatif fourni",
+        "requestedBy": "Demandé par"
+      },
+      "merge": {
+        "title": "Proposition de fusion",
+        "keeper": "Garder cette personne",
+        "signals": "Signaux de correspondance",
+        "score": "Score",
+        "approve": "Approuver la fusion",
+        "reject": "Rejeter la proposition",
+        "consequence": "La personne non gardée sera supprimée et toutes ses relations seront réattribuées."
+      },
+      "verification": {
+        "takeOver": "Prendre en charge",
+        "resolve": "Résoudre",
+        "priority": "Priorité",
+        "submittedBy": "Soumis par",
+        "approve": "Approuver",
+        "reject": "Rejeter"
+      },
+      "document": {
+        "verify": "Valider le document",
+        "reject": "Rejeter le document",
+        "type": "Type",
+        "authority": "Autorité émettrice"
+      },
+      "toasts": {
+        "approved": "Approuvé",
+        "rejected": "Rejeté",
+        "disputed": "Marqué en litige",
+        "assigned": "Assigné",
+        "resolved": "Résolu",
+        "verified": "Vérifié"
+      }
+    },
+    "persons": {
+      "title": "Personnes",
+      "subtitle": "Recherche et administration du graphe des personnes.",
+      "filters": {
+        "search": "Nom, prénom ou village...",
+        "lifeStatus": "Statut de vie",
+        "hasPhoto": "Avec photo",
+        "hasClaim": "Réclamée",
+        "village": "Village",
+        "region": "Région",
+        "country": "Pays",
+        "deleted": "Inclure les supprimées"
+      },
+      "columns": {
+        "displayName": "Nom",
+        "gender": "Genre",
+        "lifeStatus": "Statut",
+        "birthYear": "Naissance",
+        "village": "Village",
+        "region": "Région",
+        "claim": "Réclamation",
+        "createdAt": "Créé le"
+      },
+      "lifeStatus": {
+        "ALIVE": "Vivant·e",
+        "DECEASED": "Décédé·e",
+        "UNKNOWN": "Inconnu"
+      },
+      "tabs": {
+        "profile": "Profil",
+        "names": "Noms",
+        "documents": "Documents",
+        "family": "Famille",
+        "contributions": "Contributions",
+        "audit": "Journal admin"
+      },
+      "edit": { "title": "Modifier la personne" },
+      "delete": {
+        "title": "Supprimer cette personne",
+        "description": "La personne sera marquée comme supprimée (soft delete). Les relations sont conservées.",
+        "ack": "Je comprends que cette action est enregistrée comme avertissement."
+      },
+      "restore": { "title": "Restaurer la personne" },
+      "orphans": {
+        "title": "Personnes orphelines",
+        "subtitle": "Sans parents, enfants, partenaires, ni réclamation.",
+        "empty": "Aucune personne orpheline détectée."
+      },
+      "duplicates": {
+        "title": "Doublons potentiels",
+        "subtitle": "Groupes partageant le même nom normalisé et la même année de naissance.",
+        "empty": "Aucun groupe de doublons détecté."
+      },
+      "forceMerge": {
+        "title": "Fusion forcée (super-admin)",
+        "warning": "Action critique, irréversible côté graphe. Tapez MERGE pour confirmer.",
+        "keeper": "Personne à garder",
+        "loser": "Personne à fusionner (sera supprimée)"
+      },
+      "toasts": {
+        "personUpdated": "Personne mise à jour",
+        "personDeleted": "Personne supprimée",
+        "personRestored": "Personne restaurée",
+        "mergeDone": "Fusion réalisée"
+      }
+    },
+    "audit": {
+      "title": "Journal d'audit",
+      "subtitle": "Journal append-only de toutes les actions privilégiées.",
+      "filters": {
+        "actor": "Acteur (UUID)",
+        "target": "Cible (UUID)",
+        "category": "Catégorie",
+        "severity": "Sévérité",
+        "search": "Action ou motif...",
+        "dateFrom": "Du",
+        "dateTo": "Au"
+      },
+      "columns": {
+        "createdAt": "Date",
+        "actor": "Acteur",
+        "action": "Action",
+        "category": "Catégorie",
+        "severity": "Sévérité",
+        "target": "Cible"
+      },
+      "detail": {
+        "metadata": "Métadonnées",
+        "ip": "IP",
+        "userAgent": "User-Agent",
+        "requestId": "Request ID",
+        "before": "Avant",
+        "after": "Après"
+      },
+      "diff": {
+        "added": "Ajouté",
+        "removed": "Supprimé",
+        "changed": "Modifié",
+        "unchanged": "Inchangé"
+      },
+      "export": "Exporter (JSON)",
+      "exportStarted": "Export démarré"
+    },
+    "settings": {
+      "title": "Paramètres",
+      "subtitle": "Profil de l'administrateur connecté et état du système.",
+      "profile": "Profil administrateur",
+      "system": "État du système",
+      "locale": "Langue de l'interface",
+      "maintenance": "Maintenance",
+      "maintenanceSoon": "Bientôt disponible : drapeaux de fonctionnalités, mode maintenance."
+    }
+  }
+}

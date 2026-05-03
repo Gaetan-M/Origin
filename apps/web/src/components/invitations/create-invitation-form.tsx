@@ -1,47 +1,120 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateInvitationSchema, type CreateInvitationDto } from '@origin/shared-types';
+import {
+  CreateInvitationSchema,
+  type CreateInvitationDto,
+} from '@origin/shared-types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { PhoneInput } from '@/components/auth/phone-input';
 import { Send } from 'lucide-react';
-import { useState } from 'react';
-import { useT } from '@/i18n';
+import { isValidE164Phone } from '@/lib/utils/phone';
+import { toast } from 'sonner';
 
-interface CreateInvitationFormProps {
-  onSubmit: (data: CreateInvitationDto) => void;
+const RELATIONSHIP_PRESETS = [
+  'Père',
+  'Mère',
+  'Frère',
+  'Sœur',
+  'Oncle',
+  'Tante',
+  'Cousin',
+  'Cousine',
+  'Grand-père',
+  'Grand-mère',
+  'Fils',
+  'Fille',
+  'Neveu',
+  'Nièce',
+  'Conjoint(e)',
+  'Ami(e) proche',
+];
+
+interface Props {
+  onSubmit: (data: CreateInvitationDto) => Promise<unknown> | void;
   isPending?: boolean;
 }
 
-export function CreateInvitationForm({ onSubmit, isPending }: CreateInvitationFormProps) {
-  const [phone, setPhone] = useState('+237');
-  const t = useT();
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<CreateInvitationDto>({
+export function CreateInvitationForm({ onSubmit, isPending }: Props) {
+  const [phone, setPhone] = useState('');
+  const [hint, setHint] = useState('');
+
+  const {
+    setValue,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CreateInvitationDto>({
     resolver: zodResolver(CreateInvitationSchema),
   });
 
   function handlePhoneChange(value: string) {
     setPhone(value);
-    setValue('targetPhoneNumber', value);
+    setValue('targetPhoneNumber', value || undefined, { shouldValidate: true });
   }
 
+  function handleHintChange(value: string) {
+    setHint(value);
+    setValue('relationshipHint', value || undefined);
+  }
+
+  async function submit(data: CreateInvitationDto) {
+    if (!data.targetPhoneNumber || !isValidE164Phone(data.targetPhoneNumber)) {
+      toast.error('Numero invalide. Verifie le format avec indicatif pays.');
+      return;
+    }
+    await onSubmit(data);
+    setPhone('');
+    setHint('');
+  }
+
+  const canSubmit = isValidE164Phone(phone) && !isPending;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(submit)} className="space-y-4">
+      <PhoneInput
+        label="Numero de telephone"
+        value={phone}
+        onChange={handlePhoneChange}
+        disabled={isPending}
+        error={
+          errors.targetPhoneNumber?.message ??
+          (phone && !isValidE164Phone(phone) ? 'Numero incomplet' : undefined)
+        }
+      />
+
       <div>
-        <PhoneInput value={phone} onChange={handlePhoneChange} disabled={isPending} />
-        {errors.targetPhoneNumber && <p className="mt-1 text-sm text-error">{errors.targetPhoneNumber.message}</p>}
+        <Label htmlFor="hint">Lien de parente (optionnel)</Label>
+        <Input
+          id="hint"
+          list="relationship-presets"
+          value={hint}
+          onChange={(e) => handleHintChange(e.target.value)}
+          placeholder="Ex: tante, cousine, beau-frere..."
+          maxLength={100}
+          disabled={isPending}
+        />
+        <datalist id="relationship-presets">
+          {RELATIONSHIP_PRESETS.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
+        <p className="mt-1 text-xs text-charcoal/55">
+          Apparaitra dans le SMS et aidera la personne a comprendre qui l'invite.
+        </p>
       </div>
-      <div>
-        <Label htmlFor="hint">{t('invitations.hint')}</Label>
-        <Input id="hint" {...register('relationshipHint')} placeholder={t('invitations.hintPlaceholder')} />
-      </div>
-      <Button type="submit" disabled={isPending} className="w-full">
+
+      <Button type="submit" disabled={!canSubmit} className="w-full">
         <Send className="mr-2 h-4 w-4" />
-        {isPending ? t('common.loading') : t('invitations.create')}
+        {isPending ? 'Envoi en cours...' : "Envoyer l'invitation"}
       </Button>
+
+      <p className="text-center text-xs text-charcoal/50">
+        Un SMS sera envoye au numero indique avec un lien sur Origin.
+      </p>
     </form>
   );
 }

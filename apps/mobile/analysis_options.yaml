@@ -1,0 +1,27 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "lib/l10n/**"
+    - "lib/core/localization/gen/**"
+    - "build/**"
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # Allow TODO comments during initial multi-agent build.
+    todo: ignore
+    # Public API is implicit across feature folders; relax to keep iteration fast.
+    public_member_api_docs: ignore
+    # We use ConsumerWidget; lines may legitimately exceed the default cap.
+    lines_longer_than_80_chars: ignore
+
+linter:
+  rules:
+    # Allow constructors without `const` where Riverpod widgets benefit from rebuilds.
+    prefer_const_constructors: true
+    # Documentation lives in markdown; do not force every public symbol.
+    public_member_api_docs: false

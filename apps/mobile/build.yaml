@@ -1,0 +1,27 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # Backend uses snake_case; Dart models use camelCase.
+          field_rename: snake
+          explicit_to_json: true
+          create_to_json: true
+          create_factory: true
+          include_if_null: false
+          checked: true
+
+      freezed:
+        options:
+          # Keep generated copyWith methods minimal but complete.
+          copy_with: true
+          equal: true
+          to_string: true
+          map: false
+          when: false
+          fallback_union: null
+
+      riverpod_generator:
+        options:
+          provider_family_name: Family
+          provider_name_suffix: Provider

@@ -42,15 +42,16 @@
     "value3Desc": "Garde une trace de ton heritage pour les generations futures"
   },
   "nav": {
-    "dashboard": "Tableau de bord",
-    "myPersons": "Mes personnes",
-    "myTree": "Mon arbre",
+    "dashboard": "Accueil",
+    "myPersons": "Personnes",
+    "myTree": "L'arbre",
     "search": "Chercher",
     "kinshipProbe": "Trouver un proche",
     "familyCodes": "Codes famille",
+    "connect": "Connecter",
     "notifications": "Notifications",
     "invitations": "Invitations",
-    "profile": "Mon profil"
+    "profile": "Profil"
   },
   "dashboard": {
     "greeting": "Salut {name} !",

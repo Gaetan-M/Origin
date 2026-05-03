@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* SPEC colors — kept identical to apps/web so brand stays consistent. */
+  --color-forest: #2D7A4B;
+  --color-forest-light: #3D9A5F;
+  --color-forest-dark: #1D5A35;
+  --color-terracotta: #C8663B;
+  --color-terracotta-light: #D8865B;
+  --color-terracotta-dark: #A8462B;
+  --color-ochre: #D9A441;
+  --color-ochre-light: #E9C461;
+  --color-ochre-dark: #B98421;
+  --color-deep-blue: #1E3A5F;
+  --color-deep-blue-light: #2E5A8F;
+  --color-deep-blue-dark: #142844;
+  --color-sand: #F5EFE0;
+  --color-sand-dark: #E5DFD0;
+  --color-off-white: #FAFAF5;
+  --color-charcoal: #1A1A1A;
+  --color-error: #C8453B;
+  --color-error-light: #FEE2E2;
+  --color-success: #2D7A4B;
+  --color-success-light: #DCFCE7;
+  --color-warning: #D9A441;
+  --color-warning-light: #FEF9C3;
+  --color-info: #1E3A5F;
+  --color-info-light: #DBEAFE;
+
+  /* Spacing scale */
+  --spacing-18: 4.5rem;
+  --spacing-88: 22rem;
+  --spacing-128: 32rem;
+
+  /* Border radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-elevated: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+}
+
+/* CSS variables for shadcn/ui compatibility — admin uses deep-blue
+ * as its primary action color to differentiate the operator surface
+ * from the user-facing forest-green app. */
+:root {
+  --background: var(--color-off-white);
+  --foreground: var(--color-charcoal);
+  --card: #ffffff;
+  --card-foreground: var(--color-charcoal);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-charcoal);
+  --primary: var(--color-deep-blue);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-sand);
+  --secondary-foreground: var(--color-charcoal);
+  --muted: var(--color-sand);
+  --muted-foreground: #737373;
+  --accent: var(--color-sand);
+  --accent-foreground: var(--color-charcoal);
+  --destructive: var(--color-error);
+  --destructive-foreground: #ffffff;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: var(--color-deep-blue);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-[var(--border)];
+  }
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased;
+  }
+}

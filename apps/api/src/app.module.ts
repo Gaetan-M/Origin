@@ -20,6 +20,7 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { KinshipProbeModule } from './modules/kinship-probe/kinship-probe.module';
 import { FamilyCodesModule } from './modules/family-codes/family-codes.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { FamilyCodesModule } from './modules/family-codes/family-codes.module';
     MessagingModule,
     KinshipProbeModule,
     FamilyCodesModule,
+    AdminModule,
   ],
   providers: [
     {

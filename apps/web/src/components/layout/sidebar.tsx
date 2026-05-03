@@ -2,20 +2,21 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, TreePine, Bell, Send, User, Users, KeyRound, UserSearch } from 'lucide-react';
+import { Home, TreePine, Users, Bell, User, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
 import { useT } from '@/i18n';
 import { OriginLogo } from '@/components/branding/origin-decor';
 
+// Six top-level destinations matching the redesign brief: Accueil · L'arbre ·
+// Personnes · Connecter · Notifications · Profil. Inviter / Code famille /
+// Sonde de parenté live as tabs inside /connect, not as separate nav items.
 const NAV_KEYS = [
-  { href: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
-  { href: '/persons', icon: Users, key: 'nav.myPersons' },
+  { href: '/dashboard', icon: Home, key: 'nav.dashboard' },
   { href: '/tree', icon: TreePine, key: 'nav.myTree' },
-  { href: '/kinship-probe', icon: UserSearch, key: 'nav.kinshipProbe' },
-  { href: '/family-codes', icon: KeyRound, key: 'nav.familyCodes' },
+  { href: '/persons', icon: Users, key: 'nav.myPersons' },
+  { href: '/connect', icon: Link2, key: 'nav.connect' },
   { href: '/notifications', icon: Bell, key: 'nav.notifications' },
-  { href: '/invitations', icon: Send, key: 'nav.invitations' },
   { href: '/profile', icon: User, key: 'nav.profile' },
 ];
 

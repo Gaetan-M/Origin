@@ -1,277 +1,450 @@
 'use client';
 
+import Link from 'next/link';
+import { useMemo } from 'react';
 import {
-  Users,
-  Heart,
-  Camera,
-  Phone,
-  CalendarDays,
+  Sparkles,
+  ArrowRight,
+  Plus,
   Send,
   KeyRound,
-  Bell,
-  TreePine,
-  Sparkles,
+  Search,
+  CheckCircle2,
+  X as XIcon,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
-import { QuickActions } from '@/components/dashboard/quick-actions';
-import { StatCard } from '@/components/dashboard/stat-card';
-import {
-  DonutChart,
-  DonutLegend,
-  type DonutSegment,
-} from '@/components/dashboard/charts/donut-chart';
-import { BarList } from '@/components/dashboard/charts/bar-list';
-import { Sparkbar } from '@/components/dashboard/charts/sparkbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useMyStats } from '@/lib/hooks/use-stats';
-import { useT } from '@/i18n';
+import { useNotifications } from '@/lib/hooks/use-notifications';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { OriginMark, AdinkraRosette } from '@/components/dashboard/origin-mark';
+import { RecentActivity } from '@/components/dashboard/recent-activity';
 
-const MONTH_LABELS_FR = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
+const FR_DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+const FR_MONTHS = [
+  'janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre',
+];
 
-function monthLabel(yyyymm: string): string {
-  const [, mm] = yyyymm.split('-');
-  const idx = Math.max(0, Math.min(11, parseInt(mm ?? '1', 10) - 1));
-  return MONTH_LABELS_FR[idx];
+function todayLabel(): string {
+  const d = new Date();
+  return `${FR_DAYS[d.getDay()]} ${d.getDate()} ${FR_MONTHS[d.getMonth()]}`;
+}
+
+function greetingFor(d = new Date()): 'Bonjour' | 'Bon apres-midi' | 'Bonsoir' {
+  const h = d.getHours();
+  if (h < 12) return 'Bonjour';
+  if (h < 18) return 'Bon apres-midi';
+  return 'Bonsoir';
 }
 
 export default function DashboardPage() {
   const { account } = useAuthStore();
-  const t = useT();
-  const { data: stats, isLoading } = useMyStats();
-  const name = account?.phoneNumber;
+  const { data: stats, isLoading: statsLoading } = useMyStats();
+
+  const firstName = useMemo(() => {
+    if (!account) return null;
+    const p = account.phoneNumber;
+    return p ? `${p.substring(0, 7)}***` : null;
+  }, [account]);
+
+  const nextGesture = computeNextGesture(stats);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-charcoal">
-          {name ? t('dashboard.greeting', { name }) : t('dashboard.greetingDefault')}
-        </h1>
-        <p className="text-charcoal/60">Voici un apercu de ton arbre familial.</p>
+    <div className="mx-auto max-w-5xl space-y-6 pb-20">
+      {/* Greeting bar */}
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-forest">
+            {todayLabel()}
+          </p>
+          <h1 className="mt-1 text-3xl font-bold leading-tight text-charcoal">
+            {greetingFor()},{' '}
+            <span className="text-forest-dark">{firstName ?? 'toi'}</span>.
+          </h1>
+          <p className="mt-1 text-sm text-charcoal/60">
+            Voici ce qui pousse dans ton arbre cette semaine.
+          </p>
+        </div>
+        <Button asChild size="lg">
+          <Link href="/persons/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un proche
+          </Link>
+        </Button>
+      </header>
+
+      {/* HERO ROW: Living Tree + Next Gesture */}
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        {statsLoading ? (
+          <Skeleton className="h-60 rounded-2xl" />
+        ) : (
+          <LivingTreeCard stats={stats} />
+        )}
+        <NextGestureCard gesture={nextGesture} />
       </div>
 
-      {/* Quick actions */}
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-charcoal">
-          {t('dashboard.quickActions')}
-        </h2>
-        <QuickActions />
-      </section>
+      {/* SECONDARY ROW: Activity / Pending / Kinship */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <SectionCard title="Cette semaine" subtitle="Activite de ta famille">
+          <RecentActivityCompact />
+        </SectionCard>
 
-      {/* Stats grid */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-charcoal">En chiffres</h2>
+        <SectionCard
+          title="A resoudre"
+          subtitle={pendingSubtitle(stats)}
+          accent="var(--color-ochre)"
+        >
+          <PendingPanel />
+        </SectionCard>
 
-        {isLoading || !stats ? (
-          <StatsLoadingState />
-        ) : (
-          <>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                icon={Users}
-                label="Personnes"
-                value={stats.persons.total}
-                hint={
-                  stats.persons.generationSpan
-                    ? `${stats.persons.generationSpan} generation${stats.persons.generationSpan > 1 ? 's' : ''} couverte${stats.persons.generationSpan > 1 ? 's' : ''}`
-                    : 'Ajoute des proches'
-                }
-                iconClass="bg-forest/10 text-forest"
-              />
-              <StatCard
-                icon={Heart}
-                label="En vie"
-                value={stats.persons.alive}
-                hint={`${stats.persons.deceased} disparu${stats.persons.deceased > 1 ? 's' : ''}`}
-                iconClass="bg-terracotta/10 text-terracotta"
-              />
-              <StatCard
-                icon={Send}
-                label="Invitations"
-                value={stats.invitations.consumed}
-                hint={`${stats.invitations.pending} en attente`}
-                iconClass="bg-ochre/15 text-ochre"
-              />
-              <StatCard
-                icon={KeyRound}
-                label="Codes famille"
-                value={stats.familyCodes.totalRedemptions}
-                hint={`${stats.familyCodes.active} actif${stats.familyCodes.active > 1 ? 's' : ''}`}
-                iconClass="bg-forest/10 text-forest"
-              />
-            </div>
+        <SectionCard
+          title="Qui es-tu pour moi ?"
+          subtitle="Sonde de parente"
+          accent="var(--color-deep-blue)"
+        >
+          <KinshipTeaser />
+        </SectionCard>
+      </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                icon={Camera}
-                label="Avec photo"
-                value={stats.persons.withPhoto}
-                hint={pct(stats.persons.withPhoto, stats.persons.total)}
-                iconClass="bg-sand text-charcoal/70"
-              />
-              <StatCard
-                icon={Phone}
-                label="Avec telephone"
-                value={stats.persons.withPhone}
-                hint={pct(stats.persons.withPhone, stats.persons.total)}
-                iconClass="bg-sand text-charcoal/70"
-              />
-              <StatCard
-                icon={CalendarDays}
-                label="Date de naissance"
-                value={stats.persons.withBirth}
-                hint={pct(stats.persons.withBirth, stats.persons.total)}
-                iconClass="bg-sand text-charcoal/70"
-              />
-              <StatCard
-                icon={Bell}
-                label="Notifications"
-                value={stats.notifications.unread}
-                hint="non lues"
-                iconClass="bg-ochre/15 text-ochre"
-              />
-            </div>
-          </>
+      {/* Quick actions strip */}
+      <Card className="border-sand-dark">
+        <CardContent className="flex flex-wrap items-center gap-3 p-4">
+          <div className="min-w-[200px] flex-1">
+            <p className="text-sm font-semibold text-charcoal">
+              L'arbre est plus vivant a plusieurs.
+            </p>
+            <p className="mt-0.5 text-xs text-charcoal/55">
+              Invite ton frere, ta tante, ton cousin — un code suffit.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/connect?tab=invite">
+              <Send className="mr-1.5 h-3.5 w-3.5" />
+              Inviter par telephone
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/connect?tab=code">
+              <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+              Code famille
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+function LivingTreeCard({
+  stats,
+}: {
+  stats: ReturnType<typeof useMyStats>['data'];
+}) {
+  const total = stats?.persons.total ?? 0;
+  const generations = stats?.persons.generationSpan ?? 0;
+  const completeness = total === 0 ? 0 : Math.min(1, total / 30);
+  const tree = stats?.tree;
+  // Branch fullness: rough heuristic from claimed-person relations. The real
+  // model would walk the parent_child graph; for the dashboard hero we lean
+  // on aggregate signals so we don't fire 4 extra queries per render.
+  const paternal = tree ? Math.min(1, tree.parentsCount / 4) : 0;
+  const maternal = tree ? Math.min(1, tree.unionsCount / 2) : 0;
+  const own = tree ? Math.min(1, tree.childrenCount / 4) : 0;
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl border border-sand-dark p-6"
+      style={{
+        background:
+          'linear-gradient(160deg, var(--color-sand) 0%, #FAF5E8 60%, var(--color-sand-dark) 100%)',
+        minHeight: 240,
+      }}
+    >
+      <div className="pointer-events-none absolute -right-8 -top-8">
+        <AdinkraRosette size={220} opacity={0.18} />
+      </div>
+
+      <div className="relative flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-forest-dark">
+            Ton arbre
+          </p>
+          <p className="mt-1 flex items-baseline gap-2 leading-none">
+            <span className="text-4xl font-extrabold tabular-nums tracking-tight text-charcoal">
+              {total}
+            </span>
+            <span className="text-base font-medium text-charcoal/50">
+              personne{total > 1 ? 's' : ''}
+            </span>
+          </p>
+          <p className="mt-1.5 text-sm text-charcoal/60">
+            <span className="tabular-nums font-semibold">{generations}</span> generation
+            {generations > 1 ? 's' : ''} ·{' '}
+            <span className="tabular-nums font-semibold">
+              {Math.round(completeness * 100)}%
+            </span>{' '}
+            complet
+          </p>
+        </div>
+        <div className="shrink-0 [animation:origin-float_6s_ease-in-out_infinite]">
+          <OriginMark size={64} />
+        </div>
+      </div>
+
+      <div className="relative mt-6">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-charcoal/55">
+          Branches
+        </p>
+        <div className="space-y-2">
+          <BranchBar label="Branche paternelle" pct={paternal} color="var(--color-forest)" />
+          <BranchBar label="Branche maternelle" pct={maternal} color="var(--color-terracotta)" />
+          <BranchBar label="Tes enfants" pct={own} color="var(--color-ochre)" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BranchBar({
+  label,
+  pct,
+  color,
+}: {
+  label: string;
+  pct: number;
+  color: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-xs">
+        <span className="text-charcoal/70">{label}</span>
+        <span className="tabular-nums text-charcoal/50">{Math.round(pct * 100)}%</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct * 100}%`, background: color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+interface NextGesture {
+  title: string;
+  why: string;
+  cta: string;
+  href: string;
+  accent: string;
+}
+
+function computeNextGesture(stats: ReturnType<typeof useMyStats>['data']): NextGesture {
+  if (!stats || stats.persons.total === 0) {
+    return {
+      title: 'Plante la graine de ton arbre',
+      why: 'Ajoute-toi en premier — tu pourras ensuite construire les branches autour de toi.',
+      cta: 'Commencer',
+      href: '/persons/new',
+      accent: 'var(--color-forest)',
+    };
+  }
+  if (!stats.tree || stats.tree.parentsCount < 2) {
+    return {
+      title: 'Ajoute tes parents',
+      why:
+        "C'est le geste qui fera grandir l'arbre le plus vite. Sans eux, les autres branches restent invisibles.",
+      cta: 'Ajouter un parent',
+      href: '/persons/new',
+      accent: 'var(--color-terracotta)',
+    };
+  }
+  if (stats.tree.unionsCount === 0 && stats.tree.childrenCount === 0) {
+    return {
+      title: 'Ajoute tes grands-parents',
+      why:
+        'Avec deux generations au-dessus, le moteur de match peut commencer a relier ta famille elargie.',
+      cta: 'Ajouter un grand-parent',
+      href: '/persons/new',
+      accent: 'var(--color-terracotta)',
+    };
+  }
+  return {
+    title: "Invite quelqu'un a rejoindre",
+    why:
+      "L'arbre est plus vivant a plusieurs. Un proche qui rejoint, ce sont 10 nouvelles connexions potentielles.",
+    cta: 'Envoyer une invitation',
+    href: '/connect?tab=invite',
+    accent: 'var(--color-ochre)',
+  };
+}
+
+function NextGestureCard({ gesture }: { gesture: NextGesture }) {
+  return (
+    <div
+      className="flex flex-col rounded-2xl border border-sand-dark bg-white p-6"
+      style={{ borderLeft: `4px solid ${gesture.accent}`, minHeight: 240 }}
+    >
+      <span
+        className="inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide"
+        style={{
+          background: 'rgba(200,102,59,0.10)',
+          color: 'var(--color-terracotta-dark)',
+        }}
+      >
+        <Sparkles className="h-3 w-3" />
+        Geste suggere
+      </span>
+
+      <h2 className="mt-4 text-xl font-bold leading-tight tracking-tight text-charcoal">
+        {gesture.title}
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-charcoal/65">{gesture.why}</p>
+
+      {/* Visual preview — empty branch ghosts */}
+      <div className="mt-auto flex items-center gap-2 rounded-xl bg-sand p-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest text-xs font-bold text-white">
+          Toi
+        </div>
+        <ArrowRight className="h-3.5 w-3.5 text-charcoal/40" />
+        <GhostDot accent={gesture.accent} />
+        <GhostDot accent={gesture.accent} />
+        <span className="ml-auto text-[11px] text-charcoal/55">tes proches</span>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <Button asChild>
+          <Link href={gesture.href}>{gesture.cta}</Link>
+        </Button>
+        <Button variant="ghost" size="sm" disabled>
+          Plus tard
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function GhostDot({ accent }: { accent: string }) {
+  return (
+    <div
+      className="flex h-9 w-9 items-center justify-center rounded-full text-sm"
+      style={{ border: `1.5px dashed ${accent}`, color: accent }}
+    >
+      ?
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+function SectionCard({
+  title,
+  subtitle,
+  accent,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-sand-dark bg-white p-5">
+      <div className="flex items-center gap-2">
+        {accent && (
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: accent }}
+            aria-hidden
+          />
         )}
-      </section>
-
-      {/* Charts */}
-      {!isLoading && stats && stats.persons.total > 0 && (
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Statut de vie</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-around">
-              <DonutChart
-                segments={lifeStatusSegments(stats)}
-                centerLabel={String(stats.persons.total)}
-                centerSubLabel="personnes"
-              />
-              <DonutLegend segments={lifeStatusSegments(stats)} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Repartition par genre</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-around">
-              <DonutChart
-                segments={genderSegments(stats)}
-                centerLabel={String(
-                  stats.persons.male + stats.persons.female + stats.persons.other,
-                )}
-                centerSubLabel="genres connus"
-              />
-              <DonutLegend segments={genderSegments(stats)} />
-            </CardContent>
-          </Card>
-
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base">Ajouts des 6 derniers mois</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Sparkbar
-                data={stats.additionsByMonth.map((m) => ({
-                  label: m.month,
-                  value: m.count,
-                }))}
-                formatTick={monthLabel}
-                height={120}
-              />
-            </CardContent>
-          </Card>
-
-          {stats.topVillages.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Villages d&apos;origine</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BarList
-                  data={stats.topVillages.map((v) => ({
-                    label: v.village,
-                    value: v.count,
-                  }))}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {stats.tree && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <TreePine className="h-4 w-4 text-forest" />
-                  Mon noyau familial
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center gap-2 text-charcoal/85">
-                  <Sparkles className="h-4 w-4 text-ochre" />
-                  <span>
-                    Profil revendique :{' '}
-                    <span className="font-semibold">{stats.tree.claimedPersonName}</span>
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <CoreStat label="Parents" value={stats.tree.parentsCount} />
-                  <CoreStat label="Unions" value={stats.tree.unionsCount} />
-                  <CoreStat label="Enfants" value={stats.tree.childrenCount} />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </section>
-      )}
+        <p className="text-sm font-bold text-charcoal">{title}</p>
+      </div>
+      <p className="mb-3 mt-0.5 text-[11px] uppercase tracking-[0.06em] text-charcoal/50">
+        {subtitle}
+      </p>
+      <div className="flex-1">{children}</div>
     </div>
   );
 }
 
-function pct(part: number, total: number): string {
-  if (total === 0) return '0 %';
-  return `${Math.round((part / total) * 100)} %`;
-}
-
-function lifeStatusSegments(stats: NonNullable<ReturnType<typeof useMyStats>['data']>): DonutSegment[] {
-  return [
-    { label: 'En vie', value: stats.persons.alive, colorClass: 'text-forest' },
-    { label: 'Disparu', value: stats.persons.deceased, colorClass: 'text-terracotta' },
-    { label: 'Inconnu', value: stats.persons.unknown, colorClass: 'text-charcoal/30' },
-  ];
-}
-
-function genderSegments(stats: NonNullable<ReturnType<typeof useMyStats>['data']>): DonutSegment[] {
-  return [
-    { label: 'Hommes', value: stats.persons.male, colorClass: 'text-forest' },
-    { label: 'Femmes', value: stats.persons.female, colorClass: 'text-terracotta' },
-    { label: 'Autre / inconnu', value: stats.persons.other, colorClass: 'text-charcoal/30' },
-  ];
-}
-
-function CoreStat({ label, value }: { label: string; value: number }) {
+function RecentActivityCompact() {
+  // RecentActivity already does its own data fetching + skeleton — we render
+  // it without a wrapping Card so it can sit inside our SectionCard.
   return (
-    <div className="rounded-md bg-sand/50 p-2">
-      <p className="text-xl font-bold tabular-nums text-charcoal">{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-charcoal/55">{label}</p>
+    <div className="-mx-2 -my-1">
+      <RecentActivity compact />
     </div>
   );
 }
 
-function StatsLoadingState() {
+function PendingPanel() {
+  const { data } = useNotifications(1);
+  const items = (data?.data ?? []).filter((n) => !n.isRead).slice(0, 2);
+
+  if (items.length === 0) {
+    return (
+      <p className="text-xs text-charcoal/55">
+        Tout est a jour. Reviens plus tard pour valider de nouvelles propositions.
+      </p>
+    );
+  }
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <Card key={i}>
-          <CardContent className="p-4">
-            <Skeleton className="h-10 w-10 rounded-xl" />
-            <Skeleton className="mt-3 h-3 w-20" />
-            <Skeleton className="mt-2 h-7 w-12" />
-          </CardContent>
-        </Card>
+    <div className="space-y-2">
+      {items.map((n) => (
+        <div
+          key={n.id}
+          className="rounded-lg border border-ochre/25 bg-ochre/[0.08] p-2.5"
+        >
+          <p className="line-clamp-1 text-[13px] font-semibold text-charcoal">
+            {n.title}
+          </p>
+          {n.body && (
+            <p className="mt-0.5 line-clamp-2 text-[11px] text-charcoal/55">{n.body}</p>
+          )}
+          <div className="mt-2 flex gap-1.5">
+            <Button asChild size="sm" className="h-7 gap-1 px-2 text-xs">
+              <Link href={n.actionUrl ?? '/notifications'}>
+                <CheckCircle2 className="h-3 w-3" />
+                Voir
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2" disabled>
+              <XIcon className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
       ))}
     </div>
   );
+}
+
+function KinshipTeaser() {
+  return (
+    <div>
+      <p className="mb-3 text-xs leading-relaxed text-charcoal/65">
+        Tu rencontres quelqu'un qui pourrait etre de la famille ? Lance une sonde — on cherche un
+        ancetre commun, sans reveler ton arbre.
+      </p>
+      <div className="mb-2.5 flex items-center gap-2 rounded-lg border border-dashed border-sand-dark bg-off-white px-3 py-2.5 text-sm text-charcoal/55">
+        <Search className="h-3.5 w-3.5" />
+        <span>Numero ou nom...</span>
+      </div>
+      <Button asChild variant="outline" size="sm" className="w-full">
+        <Link href="/connect?tab=probe">Lancer une sonde</Link>
+      </Button>
+    </div>
+  );
+}
+
+function pendingSubtitle(stats: ReturnType<typeof useMyStats>['data']): string {
+  const n = stats?.notifications.unread ?? 0;
+  if (n === 0) return 'Rien en attente';
+  return `${n} chose${n > 1 ? 's' : ''} qui t'attend${n > 1 ? 'ent' : ''}`;
 }

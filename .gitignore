@@ -44,3 +44,13 @@ apps/api/prisma/*.db
 # Local dev scratch — screenshots, temp scripts
 .tmp/
 debug/
+
+# Claude Code internal files
+.claude/
+
+# Agent work context
+.work/
+
+# DB dumps
+*.dump
+*.sql.gz

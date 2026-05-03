@@ -1,0 +1,406 @@
+{
+  "admin": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "accounts": "Accounts",
+      "moderation": "Moderation",
+      "persons": "Persons",
+      "audit": "Audit log",
+      "settings": "Settings"
+    },
+    "actions": {
+      "search": "Search",
+      "filter": "Filter",
+      "refresh": "Refresh",
+      "export": "Export",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "restore": "Restore",
+      "ban": "Ban",
+      "unban": "Lift ban",
+      "approve": "Approve",
+      "reject": "Reject",
+      "edit": "Edit",
+      "viewDetails": "View details",
+      "copy": "Copy",
+      "confirm": "Confirm",
+      "back": "Back",
+      "logout": "Sign out",
+      "reset": "Reset",
+      "apply": "Apply",
+      "promote": "Promote",
+      "demote": "Demote",
+      "changeRole": "Change role",
+      "assignToMe": "Take over",
+      "viewAll": "View all"
+    },
+    "common": {
+      "loading": "Loading...",
+      "empty": "Nothing to display",
+      "error": "An error occurred",
+      "total": "Total",
+      "page": "Page",
+      "of": "of",
+      "yes": "Yes",
+      "no": "No",
+      "optional": "Optional",
+      "required": "Required",
+      "none": "None",
+      "all": "All",
+      "role": "Role",
+      "createdAt": "Created on",
+      "updatedAt": "Updated on",
+      "lastLogin": "Last login",
+      "status": "Status",
+      "language": "Language",
+      "signedInAs": "Signed in as",
+      "reason": "Reason",
+      "reasonPlaceholder": "Describe the reason (min. 10 characters)...",
+      "auditedAction": "This action is recorded in the audit log.",
+      "criticalAction": "This action is CRITICAL and cannot be undone. Proceed with care.",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "errorGeneric": "Something went wrong. Please retry."
+    },
+    "roles": {
+      "USER": "User",
+      "MODERATOR": "Moderator",
+      "ADMIN": "Admin",
+      "SUPER_ADMIN": "Super admin"
+    },
+    "severity": {
+      "INFO": "Info",
+      "NOTICE": "Notice",
+      "WARNING": "Warning",
+      "CRITICAL": "Critical"
+    },
+    "auth": {
+      "loginTitle": "Administration console",
+      "loginSubtitle": "Sign in with an authorized account to access the console.",
+      "phoneLabel": "Phone number",
+      "phonePlaceholder": "+237 6XX XX XX XX",
+      "otpLabel": "OTP code",
+      "otpPlaceholder": "6-digit code",
+      "sendOtp": "Send code",
+      "verifyOtp": "Verify code",
+      "loggingIn": "Signing in...",
+      "otpSent": "Code sent. Please check your messages.",
+      "invalidPhone": "Invalid phone number. Expected format: +237XXXXXXXXX.",
+      "invalidOtp": "Invalid OTP. The code must be 6 digits.",
+      "resend": "Resend code"
+    },
+    "forbidden": {
+      "title": "Access denied",
+      "message": "Your account exists but does not have the privileges required to access the administration console. If you believe this is a mistake, please contact a super administrator.",
+      "logout": "Sign out"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Platform overview and shared moderation queue.",
+      "growth": {
+        "title": "Growth",
+        "range7": "7 days",
+        "range30": "30 days",
+        "range90": "90 days",
+        "accounts": "Accounts",
+        "persons": "Persons",
+        "contributions": "Contributions",
+        "empty": "No data for this range.",
+        "error": "Could not load growth data."
+      },
+      "activity": {
+        "title": "Recent activity",
+        "empty": "No activity recorded.",
+        "error": "Could not load recent activity."
+      },
+      "contributors": {
+        "title": "Top contributors",
+        "range": "Range",
+        "contributions": "contributions",
+        "empty": "No contributors in this range.",
+        "error": "Could not load contributors."
+      },
+      "geo": {
+        "title": "Geographic distribution",
+        "country": "By country",
+        "village": "By village",
+        "region": "By region",
+        "empty": "No data.",
+        "error": "Could not load geographic data."
+      },
+      "moderation": {
+        "title": "Moderation queue",
+        "claims": "Claims",
+        "merges": "Merges",
+        "verifications": "Verifications",
+        "documents": "Documents",
+        "error": "Could not load the queue."
+      },
+      "health": {
+        "title": "System status",
+        "ok": "Operational",
+        "degraded": "Degraded",
+        "down": "Down",
+        "database": "Database",
+        "media": "Media storage",
+        "uptime": "Uptime"
+      },
+      "kpi": {
+        "accounts": "Accounts",
+        "persons": "Persons",
+        "claims": "Pending claims",
+        "moderation": "Moderation queue",
+        "error": "Could not load metrics."
+      }
+    },
+    "accounts": {
+      "title": "Accounts",
+      "subtitle": "Manage user accounts, roles and sanctions.",
+      "actions": {
+        "viewDetails": "View details",
+        "edit": "Edit",
+        "changeRole": "Change role",
+        "ban": "Ban",
+        "unban": "Lift ban",
+        "delete": "Delete",
+        "restore": "Restore"
+      },
+      "dialogs": {
+        "editTitle": "Edit account"
+      },
+      "columns": {
+        "phone": "Phone",
+        "fullName": "Full name",
+        "role": "Role",
+        "status": "Status",
+        "createdAt": "Created on",
+        "lastLogin": "Last login",
+        "actions": "Actions"
+      },
+      "filters": {
+        "search": "Phone, email or name...",
+        "role": "Role",
+        "banned": "Ban status",
+        "deleted": "Include deleted",
+        "hasClaim": "Has claim",
+        "reset": "Reset"
+      },
+      "status": {
+        "active": "Active",
+        "banned": "Banned",
+        "deleted": "Deleted"
+      },
+      "stats": {
+        "claims": "Claims",
+        "persons": "Persons",
+        "contributions": "Contributions"
+      },
+      "tabs": {
+        "profile": "Profile",
+        "activity": "Activity",
+        "audit": "Admin log"
+      },
+      "edit": {
+        "title": "Edit account",
+        "fullName": "Full name",
+        "email": "Email",
+        "notes": "Admin notes"
+      },
+      "ban": {
+        "title": "Ban this account",
+        "description": "This account will not be able to sign in while banned.",
+        "reasonLabel": "Ban reason"
+      },
+      "unban": {
+        "title": "Lift the ban",
+        "description": "The account will be able to sign in again."
+      },
+      "delete": {
+        "title": "Delete this account",
+        "description": "The account will be soft-deleted.",
+        "ack": "I understand this action is recorded in the audit log."
+      },
+      "restore": {
+        "title": "Restore account",
+        "description": "The account becomes active again."
+      },
+      "role": {
+        "title": "Change role",
+        "newRole": "New role",
+        "warning": "Any promotion to ADMIN or SUPER_ADMIN is recorded as CRITICAL.",
+        "selfWarn": "You cannot demote your own role."
+      },
+      "toasts": {
+        "updated": "Account updated",
+        "banned": "Account banned",
+        "unbanned": "Ban lifted",
+        "deleted": "Account deleted",
+        "restored": "Account restored",
+        "roleChanged": "Role updated"
+      }
+    },
+    "moderation": {
+      "title": "Moderation",
+      "subtitle": "Shared queue of claims, merges, verifications and documents.",
+      "tabs": {
+        "claims": "Claims",
+        "merges": "Merges",
+        "verifications": "Verifications",
+        "documents": "Documents"
+      },
+      "decisionBanner": "Every moderation action is audited.",
+      "claim": {
+        "approve": "Approve claim",
+        "reject": "Reject claim",
+        "dispute": "Mark as disputed",
+        "evidence": "Evidence",
+        "requestedBy": "Requested by"
+      },
+      "merge": {
+        "title": "Merge proposal",
+        "keeper": "Keep this person",
+        "signals": "Match signals",
+        "score": "Score",
+        "approve": "Approve merge",
+        "reject": "Reject proposal",
+        "consequence": "The non-kept person will be deleted and all relations reassigned."
+      },
+      "verification": {
+        "takeOver": "Take over",
+        "resolve": "Resolve",
+        "priority": "Priority",
+        "submittedBy": "Submitted by",
+        "approve": "Approve",
+        "reject": "Reject"
+      },
+      "document": {
+        "verify": "Verify document",
+        "reject": "Reject document",
+        "type": "Type",
+        "authority": "Issuing authority"
+      },
+      "toasts": {
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "disputed": "Marked as disputed",
+        "assigned": "Assigned",
+        "resolved": "Resolved",
+        "verified": "Verified"
+      }
+    },
+    "persons": {
+      "title": "Persons",
+      "subtitle": "Search and administer the persons graph.",
+      "filters": {
+        "search": "Name, given name, village...",
+        "lifeStatus": "Life status",
+        "hasPhoto": "With photo",
+        "hasClaim": "Claimed",
+        "village": "Village",
+        "region": "Region",
+        "country": "Country",
+        "deleted": "Include deleted"
+      },
+      "columns": {
+        "displayName": "Name",
+        "gender": "Gender",
+        "lifeStatus": "Status",
+        "birthYear": "Birth year",
+        "village": "Village",
+        "region": "Region",
+        "claim": "Claim",
+        "createdAt": "Created on"
+      },
+      "lifeStatus": {
+        "ALIVE": "Alive",
+        "DECEASED": "Deceased",
+        "UNKNOWN": "Unknown"
+      },
+      "tabs": {
+        "profile": "Profile",
+        "names": "Names",
+        "documents": "Documents",
+        "family": "Family",
+        "contributions": "Contributions",
+        "audit": "Admin log"
+      },
+      "edit": { "title": "Edit person" },
+      "delete": {
+        "title": "Delete person",
+        "description": "The person will be soft-deleted. Relations are kept.",
+        "ack": "I understand this action is recorded as a warning."
+      },
+      "restore": { "title": "Restore person" },
+      "orphans": {
+        "title": "Orphan persons",
+        "subtitle": "Without parents, children, partners, or claim.",
+        "empty": "No orphan persons found."
+      },
+      "duplicates": {
+        "title": "Potential duplicates",
+        "subtitle": "Groups sharing the same normalized name and birth year.",
+        "empty": "No duplicate groups found."
+      },
+      "forceMerge": {
+        "title": "Force merge (super admin)",
+        "warning": "Critical, irreversible graph operation. Type MERGE to confirm.",
+        "keeper": "Person to keep",
+        "loser": "Person to merge in (will be deleted)"
+      },
+      "toasts": {
+        "personUpdated": "Person updated",
+        "personDeleted": "Person deleted",
+        "personRestored": "Person restored",
+        "mergeDone": "Merge completed"
+      }
+    },
+    "audit": {
+      "title": "Audit log",
+      "subtitle": "Append-only log of every privileged action.",
+      "filters": {
+        "actor": "Actor (UUID)",
+        "target": "Target (UUID)",
+        "category": "Category",
+        "severity": "Severity",
+        "search": "Action or reason...",
+        "dateFrom": "From",
+        "dateTo": "To"
+      },
+      "columns": {
+        "createdAt": "Date",
+        "actor": "Actor",
+        "action": "Action",
+        "category": "Category",
+        "severity": "Severity",
+        "target": "Target"
+      },
+      "detail": {
+        "metadata": "Metadata",
+        "ip": "IP",
+        "userAgent": "User-Agent",
+        "requestId": "Request ID",
+        "before": "Before",
+        "after": "After"
+      },
+      "diff": {
+        "added": "Added",
+        "removed": "Removed",
+        "changed": "Changed",
+        "unchanged": "Unchanged"
+      },
+      "export": "Export (JSON)",
+      "exportStarted": "Export started"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Current admin profile and system status.",
+      "profile": "Admin profile",
+      "system": "System status",
+      "locale": "Interface language",
+      "maintenance": "Maintenance",
+      "maintenanceSoon": "Coming soon: feature flags, maintenance mode."
+    }
+  }
+}

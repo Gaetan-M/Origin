@@ -42,15 +42,16 @@
     "value3Desc": "Keep a record of your heritage for future generations"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "myPersons": "My persons",
-    "myTree": "My tree",
+    "dashboard": "Home",
+    "myPersons": "People",
+    "myTree": "The tree",
     "search": "Search",
     "kinshipProbe": "Find a relative",
     "familyCodes": "Family codes",
+    "connect": "Connect",
     "notifications": "Notifications",
     "invitations": "Invitations",
-    "profile": "My profile"
+    "profile": "Profile"
   },
   "dashboard": {
     "greeting": "Hi {name}!",

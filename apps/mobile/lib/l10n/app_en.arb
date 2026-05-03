@@ -1,0 +1,588 @@
+{
+  "@@locale": "en",
+  "appName": "Origin",
+  "@appName": {
+    "description": "Application name."
+  },
+
+  "common_continue": "Continue",
+  "common_cancel": "Cancel",
+  "common_yes": "Yes",
+  "common_no": "No",
+  "common_yes_its_me": "Yes, that's me",
+  "common_save": "Got it",
+  "common_back": "Back",
+  "common_next": "Next",
+  "common_skip": "Later",
+  "common_done": "Done",
+  "common_help": "Help",
+  "common_close": "Close",
+  "common_loading": "One moment...",
+  "common_retry": "Try again",
+  "common_delete": "Delete",
+  "common_edit": "Edit",
+  "common_share": "Share",
+  "common_copy": "Copy",
+  "common_copied": "Copied",
+  "common_search": "Search",
+  "common_add": "Add",
+  "common_remove": "Remove",
+  "common_confirm": "Got it",
+  "common_dont_know": "I don't know",
+  "common_optional": "Optional",
+  "common_required": "Required",
+  "common_or": "or",
+  "common_and": "and",
+  "common_more": "More",
+  "common_less": "Less",
+  "common_seeAll": "See all",
+  "common_error_generic": "Something went wrong, try again",
+  "common_offline": "No connection. Your info will be sent once you're back online.",
+  "common_online_again": "You're back online",
+  "common_pull_to_refresh": "Pull to refresh",
+  "common_no_results": "Nothing found",
+  "common_just_now": "Just now",
+  "common_minutes_ago": "{count, plural, =1{1 min ago} other{{count} min ago}}",
+  "@common_minutes_ago": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "common_hours_ago": "{count, plural, =1{1 h ago} other{{count} h ago}}",
+  "@common_hours_ago": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "common_days_ago": "{count, plural, =1{Yesterday} other{{count} days ago}}",
+  "@common_days_ago": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "common_unknown": "Unknown",
+
+  "splash_loading": "Getting your family ready...",
+
+  "onboarding_welcome_title": "Welcome to Origin",
+  "onboarding_welcome_subtitle": "Find your family, keep the memory of the elders.",
+  "onboarding_welcome_cta_start": "Start",
+  "onboarding_welcome_cta_login": "I already have an account",
+
+  "onboarding_value_prop_title": "Your family, in one app",
+  "onboarding_value_prop_point_1": "Add your loved ones, with us or gone",
+  "onboarding_value_prop_point_2": "Find cousins you've never met",
+  "onboarding_value_prop_point_3": "Keep the elders' stories alive",
+  "onboarding_value_prop_cta": "Let's go",
+
+  "auth_phone_title": "What's your number?",
+  "auth_phone_subtitle": "We'll text you a code to make sure it's really you.",
+  "auth_phone_label": "Phone number",
+  "auth_phone_hint": "6 12 34 56 78",
+  "auth_phone_helper": "Cameroonian? +237 is already set for you.",
+  "auth_phone_country_picker_title": "Choose your country",
+  "auth_phone_consent": "By continuing, you accept our terms and privacy policy.",
+  "auth_phone_continue": "Send me the code",
+  "auth_phone_via_whatsapp": "Send via WhatsApp",
+
+  "auth_otp_title": "Enter the code we sent",
+  "auth_otp_subtitle": "We just sent 6 digits to {phone}.",
+  "@auth_otp_subtitle": {
+    "placeholders": {
+      "phone": { "type": "String" }
+    }
+  },
+  "auth_otp_resend": "Didn't get it? Resend",
+  "auth_otp_resend_in": "Resend in {seconds}s",
+  "@auth_otp_resend_in": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "auth_otp_change_number": "Change number",
+  "auth_otp_invalid": "Wrong code, try again",
+  "auth_otp_expired": "Code expired, ask for a new one",
+
+  "auth_name_title": "What's your name?",
+  "auth_name_subtitle": "This is the name your family will see.",
+  "auth_name_first_label": "Your first name",
+  "auth_name_last_label": "Your last name",
+  "auth_name_traditional_label": "Your traditional name",
+  "auth_name_traditional_helper": "The name your grandma gave you, for example",
+
+  "auth_photo_title": "Add a photo of yourself",
+  "auth_photo_subtitle": "Your family will recognize you faster.",
+  "auth_photo_pick_camera": "Take a photo",
+  "auth_photo_pick_gallery": "Pick from gallery",
+  "auth_photo_skip": "I'll add one later",
+
+  "auth_parents_title": "Tell us about your parents",
+  "auth_parents_subtitle": "You can add your mum, your dad, or both.",
+  "auth_parents_add_father": "Add your dad",
+  "auth_parents_add_mother": "Add your mum",
+  "auth_parents_skip": "I'll do it later",
+  "auth_parents_done": "Done, next",
+
+  "auth_siblings_title": "Do you have brothers or sisters?",
+  "auth_siblings_subtitle": "No need to add everyone right now.",
+  "auth_siblings_add": "Add a brother or sister",
+  "auth_siblings_done": "Done, next",
+  "auth_siblings_skip": "I'll do it later",
+  "auth_siblings_count": "{count, plural, =0{No siblings yet} =1{1 sibling} other{{count} siblings}}",
+  "@auth_siblings_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "auth_done_title": "Welcome to the family!",
+  "auth_done_subtitle": "You can now explore your tree and add more loved ones.",
+  "auth_done_cta": "See my family",
+
+  "life_status_alive": "With us",
+  "life_status_deceased": "Has passed",
+  "life_status_unknown": "Unknown",
+  "life_status_alive_long": "Still with us",
+  "life_status_deceased_long": "Has passed, may they rest in peace",
+
+  "tree_title": "My family",
+  "tree_empty_title": "Your family is still small",
+  "tree_empty_subtitle": "Add your parents, your kids, your siblings to get started.",
+  "tree_empty_cta": "Add someone",
+  "tree_zoom_in": "Zoom in",
+  "tree_zoom_out": "Zoom out",
+  "tree_center_me": "Center on me",
+  "tree_filter": "Filter",
+  "tree_show_deceased": "Show those who have passed",
+  "tree_loading": "Drawing your tree...",
+  "tree_degrees": "{count, plural, =1{1 level} other{{count} levels}}",
+  "@tree_degrees": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "search_title": "Search",
+  "search_hint": "Name, surname, village...",
+  "search_recent": "Recent",
+  "search_no_results_title": "We couldn't find anyone",
+  "search_no_results_subtitle": "Try another name, or add the person directly.",
+  "search_add_person_cta": "Add this person",
+  "search_filter_all": "All",
+  "search_filter_alive": "With us",
+  "search_filter_deceased": "Has passed",
+
+  "notifications_title": "Notifications",
+  "notifications_empty_title": "Nothing new",
+  "notifications_empty_subtitle": "We'll let you know when someone in your family does something new.",
+  "notifications_mark_all_read": "Mark all as read",
+  "notifications_unread_count": "{count, plural, =0{No new notifications} =1{1 new notification} other{{count} new notifications}}",
+  "@notifications_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "notifications_type_invitation": "Invitation",
+  "notifications_type_claim": "Link request",
+  "notifications_type_match": "We may have found a relative",
+  "notifications_type_birthday": "A birthday is coming up",
+  "notifications_type_memorial": "Memorial day",
+
+  "profile_title": "My profile",
+  "profile_my_account": "My account",
+  "profile_security": "Security",
+  "profile_accessibility": "Accessibility",
+  "profile_language": "Language",
+  "profile_help": "Help",
+  "profile_about": "About",
+  "profile_logout": "Log out",
+  "profile_logout_confirm_title": "Log out?",
+  "profile_logout_confirm_subtitle": "You can log back in with your number.",
+  "profile_logout_confirm_cta": "Yes, log me out",
+
+  "person_detail_title": "Profile",
+  "person_detail_relations": "Family ties",
+  "person_detail_documents": "Documents",
+  "person_detail_photos": "Photos",
+  "person_detail_about": "About",
+  "person_detail_add_relation": "Add a relation",
+  "person_detail_claim_cta": "This is me",
+  "person_detail_invite_cta": "Invite to join Origin",
+  "person_detail_decease_cta": "This person has passed",
+  "person_detail_birth_year": "Birth year",
+  "person_detail_birth_place": "Birth place",
+  "person_detail_decease_year": "Year of passing",
+  "person_detail_decease_place": "Place of passing",
+  "person_detail_no_info": "No info yet",
+
+  "person_new_title": "Add someone",
+  "person_new_who_relation": "Who is this person to you?",
+  "person_new_first_name_label": "First name",
+  "person_new_last_name_label": "Last name",
+  "person_new_traditional_name_label": "Traditional name (optional)",
+  "person_new_life_status_label": "This person...",
+  "person_new_birth_year_label": "Birth year (roughly)",
+  "person_new_birth_year_helper": "If you don't know, we can guess from age.",
+  "person_new_birth_place_label": "Village or city",
+  "person_new_save": "Add",
+  "person_new_save_and_add_another": "Add and continue",
+
+  "person_edit_title": "Edit",
+  "person_edit_save": "Save",
+  "person_edit_delete_cta": "Delete this person",
+  "person_edit_delete_confirm_title": "Delete this person?",
+  "person_edit_delete_confirm_subtitle": "Their links will also be removed. You can undo within 7 days.",
+  "person_edit_delete_confirm_cta": "Yes, delete",
+
+  "relationship_father": "Dad",
+  "relationship_mother": "Mum",
+  "relationship_parent": "Parent",
+  "relationship_sibling": "Brother or sister",
+  "relationship_brother": "Brother",
+  "relationship_sister": "Sister",
+  "relationship_spouse": "Spouse",
+  "relationship_husband": "Husband",
+  "relationship_wife": "Wife",
+  "relationship_child": "Child",
+  "relationship_son": "Son",
+  "relationship_daughter": "Daughter",
+  "relationship_grandparent": "Grandparent",
+  "relationship_grandfather": "Grandfather",
+  "relationship_grandmother": "Grandmother",
+  "relationship_grandchild": "Grandchild",
+  "relationship_uncle": "Uncle",
+  "relationship_aunt": "Aunt",
+  "relationship_cousin": "Cousin",
+  "relationship_nephew": "Nephew",
+  "relationship_niece": "Niece",
+  "relationship_other": "Other",
+
+  "claim_request_title": "Link this profile to you",
+  "claim_request_subtitle": "You're saying this is you. Your family will be asked to confirm.",
+  "claim_request_cta": "It's me",
+  "claim_request_cancel": "Cancel my request",
+  "claim_status_pending": "Awaiting confirmation",
+  "claim_status_pending_verification": "Verifying",
+  "claim_status_verified": "Confirmed",
+  "claim_status_rejected": "Rejected",
+  "claim_status_disputed": "Disputed",
+  "claim_pending_title": "Requests to confirm",
+  "claim_pending_empty": "No pending requests",
+  "claim_mine_title": "My requests",
+  "claim_mine_empty": "You haven't requested any link yet",
+  "claim_validate_cta": "Confirm",
+  "claim_dispute_cta": "This isn't the right person",
+  "claim_dispute_reason_label": "Why?",
+
+  "invitation_title": "Invite someone",
+  "invitation_subtitle": "Send a link to a relative so they can join your family on Origin.",
+  "invitation_phone_label": "Their number",
+  "invitation_via_whatsapp": "Invite by WhatsApp",
+  "invitation_via_sms": "Invite by SMS",
+  "invitation_my_invitations": "My invitations",
+  "invitation_status_pending": "Pending",
+  "invitation_status_accepted": "Accepted",
+  "invitation_status_expired": "Expired",
+  "invitation_redeem_title": "You've been invited",
+  "invitation_redeem_subtitle": "{name} thinks you're part of their family.",
+  "@invitation_redeem_subtitle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "invitation_redeem_accept": "Yes, that's my family",
+  "invitation_redeem_decline": "No, I don't know them",
+
+  "family_code_title": "Family codes",
+  "family_code_subtitle": "Share a code so your relatives can join quickly.",
+  "family_code_create_cta": "Create a code",
+  "family_code_label_label": "Who is this code for? (optional)",
+  "family_code_max_uses_label": "How many people max?",
+  "family_code_share_cta": "Share the code",
+  "family_code_redeem_title": "Enter a family code",
+  "family_code_redeem_hint": "6-character code",
+  "family_code_redeem_cta": "Join",
+  "family_code_uses_title": "People who used this code",
+  "family_code_uses_empty": "No one has used this code yet",
+
+  "kinship_probe_title": "Ask if we're family",
+  "kinship_probe_subtitle": "Send a discreet request to this person.",
+  "kinship_probe_relationship_hint_label": "Who do you think they are?",
+  "kinship_probe_notes_label": "A short note (optional)",
+  "kinship_probe_send_cta": "Send the request",
+  "kinship_probe_received_title": "{name} thinks you're family",
+  "@kinship_probe_received_title": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "kinship_probe_accept": "Yes, we're family",
+  "kinship_probe_reject": "No, I don't think so",
+
+  "match_title": "Possible relatives",
+  "match_subtitle": "We've found people who may be in your family.",
+  "match_empty": "No suggestions yet",
+  "match_accept": "Yes, this is the right person",
+  "match_reject": "No, it's not them",
+  "match_view_profile": "View profile",
+  "match_confidence_high": "Very likely",
+  "match_confidence_medium": "Likely",
+  "match_confidence_low": "Possible",
+
+  "identity_doc_title": "ID documents",
+  "identity_doc_add_title": "Add a document",
+  "identity_doc_type_label": "Document type",
+  "identity_doc_number_label": "Number",
+  "identity_doc_number_helper": "Your number stays private, never shown openly.",
+  "identity_doc_issuing_authority_label": "Authority (optional)",
+  "identity_doc_issuing_place_label": "Place of issue (optional)",
+  "identity_doc_issue_date_label": "Date of issue (optional)",
+  "identity_doc_expiry_date_label": "Expiry date (optional)",
+  "identity_doc_scan_cta": "Add a photo of the document",
+  "identity_doc_save_cta": "Save",
+  "identity_doc_reveal_cta": "Show the number",
+  "identity_doc_type_cni": "Cameroon ID",
+  "identity_doc_type_passport_cm": "Cameroonian passport",
+  "identity_doc_type_passport_foreign": "Foreign passport",
+  "identity_doc_type_acte_naissance": "Birth certificate",
+  "identity_doc_type_carte_consulaire": "Consular card",
+  "identity_doc_type_permis": "Driving licence",
+  "identity_doc_type_carte_electeur": "Voter card",
+  "identity_doc_type_carte_scolaire": "School card",
+  "identity_doc_type_other": "Other",
+
+  "media_title": "Photos and memories",
+  "media_upload_title": "Add a photo",
+  "media_upload_pick_camera": "Take a photo",
+  "media_upload_pick_gallery": "Pick from gallery",
+  "media_upload_caption_label": "Caption (optional)",
+  "media_upload_save": "Save",
+  "media_uploading": "Uploading your photo...",
+  "media_upload_failed": "Upload didn't work. Try again.",
+  "media_no_photos": "No photos yet",
+
+  "settings_title": "Settings",
+  "settings_account_title": "My account",
+  "settings_account_phone": "My number",
+  "settings_account_email_label": "Email (optional)",
+  "settings_account_whatsapp_toggle": "Send me codes via WhatsApp",
+  "settings_account_delete_cta": "Delete my account",
+  "settings_account_delete_confirm_title": "Delete your account?",
+  "settings_account_delete_confirm_subtitle": "Your info stays in the family but you'll lose access.",
+  "settings_security_title": "Security",
+  "settings_security_pin_set": "Set a PIN",
+  "settings_security_pin_change": "Change my PIN",
+  "settings_security_pin_remove": "Remove PIN",
+  "settings_security_pin_helper": "Optional. Adds protection on top of your number.",
+  "settings_accessibility_title": "Accessibility",
+  "settings_accessibility_large_text": "Larger text",
+  "settings_accessibility_large_text_helper": "Easier to read (grandma mode).",
+  "settings_accessibility_data_saver": "Data saver mode",
+  "settings_accessibility_data_saver_helper": "Lower-resolution photos.",
+  "settings_language_title": "Language",
+  "settings_language_french": "Français",
+  "settings_language_english": "English",
+
+  "help_title": "Need a hand?",
+  "help_call_me": "Call me",
+  "help_whatsapp": "Chat on WhatsApp",
+  "help_video_guide": "Watch the video guide",
+  "help_close": "Close",
+
+  "decade_picker_title": "Roughly when?",
+  "decade_picker_before_1950": "Before 1950",
+  "decade_picker_1950s": "1950s",
+  "decade_picker_1960s": "1960s",
+  "decade_picker_1970s": "1970s",
+  "decade_picker_1980s": "1980s",
+  "decade_picker_1990s": "1990s",
+  "decade_picker_2000s": "2000s",
+  "decade_picker_2010s": "2010s",
+  "decade_picker_2020s": "2020s",
+  "decade_picker_this_year": "This year",
+  "decade_picker_dont_know": "I don't know",
+
+  "error_network": "No connection. Check your network.",
+  "error_server": "Server's having trouble. Try again later.",
+  "error_unauthorized": "Looks like your session ended. Sign in again.",
+  "error_validation": "Something doesn't look right in what you entered.",
+  "error_unknown": "It didn't work. Try again.",
+  "error_phone_invalid": "That number doesn't look right",
+  "error_otp_invalid": "Wrong code",
+  "error_pin_mismatch": "The two codes don't match",
+  "error_required_field": "This field is required",
+  "error_too_short": "Too short",
+  "error_too_long": "Too long",
+  "error_invalid_format": "Invalid format",
+
+  "validation_required": "This field is required",
+  "validation_phone": "Invalid phone number",
+  "validation_email": "Invalid email",
+  "validation_min_length": "At least {count, plural, =1{1 character} other{{count} characters}}",
+  "@validation_min_length": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "validation_max_length": "At most {count, plural, =1{1 character} other{{count} characters}}",
+  "@validation_max_length": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "validation_year_range": "Invalid year",
+  "validation_pin_format": "PIN must be 4 or 6 digits",
+
+  "toast_saved": "Saved",
+  "toast_deleted": "Deleted",
+  "toast_copied": "Copied to clipboard",
+  "toast_link_copied": "Link copied",
+  "toast_offline_queued": "You're offline. We'll send when possible.",
+  "toast_invitation_sent": "Invitation sent",
+  "toast_claim_sent": "Request sent to your family",
+  "toast_match_accepted": "Got it, merged",
+  "toast_match_rejected": "Got it, we won't suggest again",
+
+  "empty_state_default_title": "Nothing here",
+  "empty_state_default_subtitle": "Come back later or add something new.",
+
+  "country_cm": "Cameroon",
+  "country_ng": "Nigeria",
+  "country_td": "Chad",
+  "country_cf": "Central African Republic",
+  "country_ga": "Gabon",
+  "country_cg": "Congo",
+  "country_gq": "Equatorial Guinea",
+  "country_fr": "France",
+  "country_be": "Belgium",
+  "country_ca": "Canada",
+  "country_us": "United States",
+  "country_other": "Other",
+
+  "design_home_greeting_eyebrow": "Akwaba · Welcome",
+  "design_home_your_tree_label": "Your tree",
+  "design_home_stat_people": "people",
+  "design_home_stat_generations": "generations",
+  "design_home_stat_links": "links",
+  "design_home_branch_paternal": "Paternal branch",
+  "design_home_branch_maternal": "Maternal branch",
+  "design_home_branch_children": "Your children",
+  "design_home_branch_spouse": "Spouse",
+  "design_home_suggested_eyebrow": "Suggested move",
+  "design_home_suggested_dismiss": "Later",
+  "design_home_recent_title": "Recently",
+  "design_home_recent_see_all": "See all",
+  "design_home_quick_actions_title": "The tree thrives with company.",
+  "design_home_quick_actions_subtitle": "Invite your brother, your aunt, your cousin — one code is enough.",
+  "design_home_action_invite_phone": "Invite by phone",
+  "design_home_action_family_code": "Family code",
+  "design_home_match_callout_title": "A possible cousin — {percent}%",
+  "@design_home_match_callout_title": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+
+  "design_onboarding_seed_title": "Plant your seed.",
+  "design_onboarding_seed_subtitle": "Give us a few roots to start with. You can enrich everything later.",
+  "design_onboarding_seed_hero_message": "Origin starts with you. In 30 seconds, you'll be a node on the family tree — from which your parents, children, cousins will grow.",
+  "design_onboarding_step_indicator": "Step {current} of {total} — {label}",
+  "@design_onboarding_step_indicator": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" },
+      "label": { "type": "String" }
+    }
+  },
+  "design_onboarding_step_seed_label": "The seed",
+  "design_onboarding_field_first_name": "Your first name",
+  "design_onboarding_field_village": "Home village",
+  "design_onboarding_field_birth_year": "Year of birth",
+  "design_onboarding_field_photo_optional": "Add a photo (optional)",
+  "design_onboarding_privacy_note": "Your relatives will only see what you choose to share.",
+  "design_onboarding_match_found_title": "We may have found you already",
+  "design_onboarding_match_found_subtitle": "Someone in your family may have already created your profile. Do you recognize this person?",
+  "design_onboarding_create_new_profile": "Create a new profile",
+
+  "design_tree_title": "The tree",
+  "design_tree_layout_vertical": "Vertical",
+  "design_tree_layout_horizontal": "Horizontal",
+  "design_tree_layout_map": "Map",
+  "design_tree_section_grandparents": "Grandparents",
+  "design_tree_section_parents": "Parents · Aunts · Uncles",
+  "design_tree_section_self_row": "You · Siblings · Spouse",
+  "design_tree_section_children": "Children",
+  "design_tree_ghost_add_parent": "+ parent",
+  "design_tree_ghost_add_sibling": "+ sibling",
+  "design_tree_ghost_add_child": "+ child",
+  "design_tree_ghost_add_spouse": "+ spouse",
+  "design_tree_chip_you": "you",
+  "design_tree_hint_tap_empty": "Tap an empty slot to add a relative — the tree grows with you.",
+  "design_tree_legend_alive": "Alive",
+  "design_tree_legend_deceased": "Passed",
+  "design_tree_legend_empty": "Empty slot — to fill",
+  "design_tree_legend_union": "Union",
+  "design_tree_exploring_banner": "You are exploring {name}'s tree",
+  "@design_tree_exploring_banner": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "design_tree_back_to_mine": "My tree",
+
+  "design_person_section_life": "Their life",
+  "design_person_section_links": "Links",
+  "design_person_links_count": "{count, plural, =0{no links} =1{1 person} other{{count} people}}",
+  "@design_person_links_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "design_person_group_spouse": "Spouse",
+  "design_person_group_parents": "Parents",
+  "design_person_group_children": "Children",
+  "design_person_group_siblings": "Siblings",
+  "design_person_group_grandparents": "Grandparents",
+  "design_person_group_grandchildren": "Grandchildren",
+  "design_person_stories_eyebrow": "Stories & memories",
+  "design_person_stories_empty_title": "No stories yet.",
+  "design_person_stories_empty_subtitle": "Add a memory, an anecdote, a photo. Stories pass on — not just dates.",
+  "design_person_stories_add_photo": "Add a photo",
+  "design_person_stories_write": "Write a memory",
+
+  "design_connect_eyebrow": "Connect",
+  "design_connect_title": "Weave your web.",
+  "design_connect_subtitle": "Three ways to link the branches of your family to the graph.",
+  "design_connect_tab_invite": "Invite",
+  "design_connect_tab_code": "Family code",
+  "design_connect_tab_probe": "Probe",
+  "design_connect_code_card_eyebrow": "{familyName} family code",
+  "@design_connect_code_card_eyebrow": {
+    "placeholders": {
+      "familyName": { "type": "String" }
+    }
+  },
+  "design_connect_code_valid_until": "Valid until {date}",
+  "@design_connect_code_valid_until": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "design_connect_code_share": "Share",
+  "design_connect_code_regenerate": "Regenerate",
+  "design_connect_code_helper": "Give this code to your family members. They join your tree by entering it at sign-up.",
+  "design_connect_recent_joins": "Recently joined",
+  "design_connect_invite_card_title": "Invite by phone",
+  "design_connect_invite_card_subtitle": "Enter a relative's number. We'll send them an SMS — they join the tree when they want.",
+  "design_connect_invite_send_cta": "Send invitation",
+  "design_connect_probe_title": "Are you family?",
+  "design_connect_probe_subtitle": "Met someone who could be a distant cousin? Launch a probe — we look for a common ancestor. No tree is revealed: only the degree of kinship appears, if any.",
+  "design_connect_probe_send_cta": "Launch probe",
+  "design_connect_probe_previous": "Previous probe",
+
+  "design_tab_home": "Home",
+  "design_tab_tree": "Tree",
+  "design_tab_connect": "Connect",
+  "design_tab_profile": "Me",
+  "design_tab_add_label": "Add"
+}
