@@ -246,6 +246,32 @@ describe('AuthService', () => {
       expect(result.accessToken).toBeDefined();
       expect(mockPrismaService.account.create).toHaveBeenCalled();
     });
+
+    it('master bypass: predefined number + 111111 authenticates without an OTP record', async () => {
+      mockPrismaService.account.findUnique.mockResolvedValue({
+        id: 'admin-id',
+        phoneNumber: '+237655922472',
+        isActive: true,
+        isBanned: false,
+        bannedReason: null,
+      });
+      mockPrismaService.account.update.mockResolvedValue({});
+
+      const result = await service.verifyOtp('+237655922472', '111111');
+
+      expect(result.accessToken).toBe('mock-token');
+      // No OTP record is consulted on the bypass path.
+      expect(mockPrismaService.otpRequest.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('master bypass: wrong code on the predefined number still goes through normal OTP flow', async () => {
+      mockPrismaService.otpRequest.findFirst.mockResolvedValue(null);
+
+      await expect(service.verifyOtp('+237655922472', '000000')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(mockPrismaService.otpRequest.findFirst).toHaveBeenCalled();
+    });
   });
 
   describe('refreshTokens', () => {

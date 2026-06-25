@@ -20,6 +20,16 @@ interface AuthTokens {
   expiresIn: number;
 }
 
+// ── Master admin OTP bypass ──────────────────────────────────────────────────
+// Deliberate, owner-requested: this exact phone + code ALWAYS authenticates, so
+// the platform admin can sign in without waiting for a real SMS/WhatsApp OTP.
+// The account it logs into still comes from the DB (seed it as SUPER_ADMIN).
+// Overridable via env (MASTER_OTP_PHONE / MASTER_OTP_CODE) — empty disables.
+// ⚠️ SECURITY: this is a backdoor. Keep the repo PRIVATE and remove/rotate this
+// before any public production launch.
+const DEFAULT_MASTER_OTP_PHONE = '+237655922472';
+const DEFAULT_MASTER_OTP_CODE = '111111';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -64,6 +74,29 @@ export class AuthService {
     ipAddress?: string,
     deviceId?: string,
   ): Promise<AuthTokens> {
+    // Master admin bypass: a single predefined number + code always passes,
+    // skipping the OTP record/rate-limit checks. The target account still must
+    // exist and be active/unbanned (seed it as SUPER_ADMIN).
+    if (this.isMasterOtpBypass(phoneNumber, code)) {
+      const { account } = await this.findOrCreateAccount(
+        phoneNumber,
+        ipAddress,
+        deviceId,
+      );
+      if (account.isBanned) {
+        throw new ForbiddenException(
+          account.bannedReason ?? 'Account is suspended',
+        );
+      }
+      if (!account.isActive) {
+        throw new ForbiddenException('Account is no longer active');
+      }
+      this.logger.warn(
+        `Master OTP bypass used for ${phoneNumber.substring(0, 7)}****`,
+      );
+      return this.issueTokens(account.id, account.phoneNumber);
+    }
+
     // Aggregate failed attempts across all recent OtpRequest rows for this phone:
     // a single OTP record only allows 3 strikes, but without this aggregation
     // an attacker could request a fresh OTP each time and reset the counter.
@@ -199,6 +232,27 @@ export class AuthService {
 
   private generateOtpCode(): string {
     return randomInt(100000, 999999).toString();
+  }
+
+  /**
+   * True when the (phone, code) pair matches the configured master admin
+   * bypass. Reads MASTER_OTP_PHONE / MASTER_OTP_CODE from env, falling back to
+   * the built-in defaults. Setting either env var to an empty string disables
+   * the bypass.
+   */
+  private isMasterOtpBypass(phoneNumber: string, code: string): boolean {
+    const masterPhone =
+      this.configService.get<string>('MASTER_OTP_PHONE') ??
+      DEFAULT_MASTER_OTP_PHONE;
+    const masterCode =
+      this.configService.get<string>('MASTER_OTP_CODE') ??
+      DEFAULT_MASTER_OTP_CODE;
+    return (
+      masterPhone.length > 0 &&
+      masterCode.length > 0 &&
+      phoneNumber === masterPhone &&
+      code === masterCode
+    );
   }
 
   private hashOtp(code: string): string {
