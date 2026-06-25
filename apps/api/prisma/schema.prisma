@@ -704,3 +704,129 @@ model AdminAuditLog {
   @@index([createdAt(sort: Desc)], map: "idx_admin_audit_created")
   @@map("admin_audit_logs")
 }
+
+// ============================================
+// PHASE 1 — LIFE EVENTS & SOCIAL FEED
+// Additive models for life-event timeline + family/public feed.
+// Cross-aggregate references (Account/Person/Union) are kept as plain
+// scalar UUID columns here; the real FOREIGN KEY constraints are declared
+// in the hand-written migration. This keeps the additive change free of
+// edits to the existing Account/Person/Union models (no back-relation
+// fields required on them). Relations strictly between the new models are
+// expressed as full Prisma relations.
+// ============================================
+
+enum LifeEventKind {
+  BIRTH
+  DEATH
+  UNION
+
+  @@map("life_event_kind")
+}
+
+// A dated, visibility-scoped fact about one or more persons in the graph
+// (birth, death, union). The subject is primary_person_id; additional
+// involved persons are joined via LifeEventParticipant. occurred_at reuses
+// the existing DatePrecision enum to model fuzzy historical dates.
+model LifeEvent {
+  id                  String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  kind                LifeEventKind
+  primaryPersonId     String          @map("primary_person_id") @db.Uuid
+  unionId             String?         @map("union_id") @db.Uuid
+  occurredAt          DateTime?       @map("occurred_at") @db.Timestamptz()
+  occurredAtPrecision DatePrecision   @default(UNKNOWN) @map("occurred_at_precision")
+  createdByAccountId  String          @map("created_by_account_id") @db.Uuid
+  visibilityScope     VisibilityScope @default(FAMILY) @map("visibility_scope")
+  visibleMaxDegree    Int?            @map("visible_max_degree")
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt           DateTime?       @map("deleted_at") @db.Timestamptz()
+
+  participants LifeEventParticipant[]
+  feedPosts    FeedPost[]
+
+  @@index([primaryPersonId], map: "idx_life_events_primary_person")
+  @@index([unionId], map: "idx_life_events_union")
+  @@index([createdByAccountId], map: "idx_life_events_created_by")
+  @@index([kind], map: "idx_life_events_kind")
+  @@index([createdAt(sort: Desc)], map: "idx_life_events_created")
+  @@map("life_events")
+}
+
+// Additional persons involved in a life event beyond the primary subject
+// (e.g. both partners of a UNION, a parent recorded on a BIRTH). role is a
+// free-form string ('subject' | 'partner' | 'parent' | ...).
+model LifeEventParticipant {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lifeEventId String   @map("life_event_id") @db.Uuid
+  personId    String   @map("person_id") @db.Uuid
+  role        String   @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  lifeEvent LifeEvent @relation(fields: [lifeEventId], references: [id], onDelete: Cascade)
+
+  @@unique([lifeEventId, personId, role], map: "uq_life_event_participant")
+  @@index([lifeEventId], map: "idx_life_event_participants_event")
+  @@index([personId], map: "idx_life_event_participants_person")
+  @@map("life_event_participants")
+}
+
+// A social-feed post, optionally derived from a LifeEvent. For FAMILY
+// visibility the OWNER personId used by VisibilityGuard/GraphDegreeService
+// is subject_person_id (the person the post is about).
+model FeedPost {
+  id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lifeEventId      String?         @map("life_event_id") @db.Uuid
+  authorAccountId  String          @map("author_account_id") @db.Uuid
+  subjectPersonId  String?         @map("subject_person_id") @db.Uuid
+  postType         String          @map("post_type") @db.VarChar(50)
+  body             String?
+  visibilityScope  VisibilityScope @default(FAMILY) @map("visibility_scope")
+  visibleMaxDegree Int?            @map("visible_max_degree")
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime?       @map("deleted_at") @db.Timestamptz()
+
+  lifeEvent LifeEvent?     @relation(fields: [lifeEventId], references: [id], onDelete: SetNull)
+  reactions FeedReaction[]
+  comments  FeedComment[]
+
+  @@index([subjectPersonId], map: "idx_feed_posts_subject_person")
+  @@index([authorAccountId], map: "idx_feed_posts_author")
+  @@index([lifeEventId], map: "idx_feed_posts_life_event")
+  @@index([visibilityScope, createdAt(sort: Desc)], map: "idx_feed_posts_visibility_created")
+  @@index([createdAt(sort: Desc)], map: "idx_feed_posts_created")
+  @@map("feed_posts")
+}
+
+model FeedReaction {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  feedPostId   String    @map("feed_post_id") @db.Uuid
+  accountId    String    @map("account_id") @db.Uuid
+  reactionType String    @map("reaction_type") @db.VarChar(30)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  feedPost FeedPost @relation(fields: [feedPostId], references: [id], onDelete: Cascade)
+
+  @@unique([feedPostId, accountId, reactionType], map: "uq_feed_reaction")
+  @@index([feedPostId], map: "idx_feed_reactions_post")
+  @@index([accountId], map: "idx_feed_reactions_account")
+  @@map("feed_reactions")
+}
+
+model FeedComment {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  feedPostId String    @map("feed_post_id") @db.Uuid
+  accountId  String    @map("account_id") @db.Uuid
+  body       String
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz()
+
+  feedPost FeedPost @relation(fields: [feedPostId], references: [id], onDelete: Cascade)
+
+  @@index([feedPostId], map: "idx_feed_comments_post")
+  @@index([accountId], map: "idx_feed_comments_account")
+  @@map("feed_comments")
+}

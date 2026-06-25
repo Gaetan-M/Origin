@@ -22,6 +22,10 @@ import { KinshipProbeModule } from './modules/kinship-probe/kinship-probe.module
 import { FamilyCodesModule } from './modules/family-codes/family-codes.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
+import { EventingModule } from './eventing/eventing.module';
+import { LifeEventsModule } from './modules/life-events/life-events.module';
+import { FamilyFeedModule } from './modules/family-feed/family-feed.module';
+import { SearchModule } from './search/search.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
 @Module({
@@ -62,6 +66,10 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     FamilyCodesModule,
     AdminModule,
     AuthorizationModule,
+    EventingModule,
+    LifeEventsModule,
+    FamilyFeedModule,
+    SearchModule,
   ],
   providers: [
     {
