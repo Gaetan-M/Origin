@@ -7,8 +7,13 @@ import compression from 'compression';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { initSentry } from './observability/sentry';
 
 async function bootstrap(): Promise<void> {
+  // Initialize Sentry as early as possible. NO-OP when SENTRY_DSN is unset, so
+  // local/dev/test boot normally without any external dependency on Sentry.
+  initSentry();
+
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');

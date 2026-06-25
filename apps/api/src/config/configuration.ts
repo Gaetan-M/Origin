@@ -25,6 +25,11 @@ export default (): Record<string, unknown> => ({
     ttl: parseInt(process.env.THROTTLE_TTL || '60', 10) * 1000,
     limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
   },
+  authorization: {
+    // Default cap for FAMILY-scope family-graph degree when a content item
+    // does not pin its own visible_max_degree.
+    familyMaxDegree: parseInt(process.env.FAMILY_MAX_DEGREE || '5', 10),
+  },
   aws: {
     region: process.env.AWS_REGION || 'af-south-1',
     endpointUrl: process.env.AWS_ENDPOINT_URL,

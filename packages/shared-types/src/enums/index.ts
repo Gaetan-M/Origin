@@ -101,6 +101,19 @@ export enum NotificationType {
   OTHER = 'OTHER',
 }
 
+/**
+ * Visibility scope for every user-generated content entity.
+ * PRIVATE_SELF: owner only.
+ * FAMILY: visible within a bounded family-graph degree.
+ * PUBLIC: public feed.
+ * private -> public is opt-in per item; the public world must never leak family-graph edges.
+ */
+export enum VisibilityScope {
+  PRIVATE_SELF = 'PRIVATE_SELF',
+  FAMILY = 'FAMILY',
+  PUBLIC = 'PUBLIC',
+}
+
 export enum Gender {
   MALE = 'M',
   FEMALE = 'F',

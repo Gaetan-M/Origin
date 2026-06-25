@@ -37,6 +37,9 @@ export const validationSchema = Joi.object({
   AWS_ENDPOINT_URL: Joi.string().optional(),
   AWS_KMS_KEY_ID: Joi.string().optional(),
   LOG_LEVEL: Joi.string().valid('debug', 'info', 'warn', 'error').default('debug'),
+  // Observability: empty/unset disables Sentry (init is a no-op without a DSN).
+  SENTRY_DSN: Joi.string().allow('').optional(),
+  SENTRY_RELEASE: Joi.string().allow('').optional(),
   TWILIO_ACCOUNT_SID: Joi.string().allow('').optional(),
   TWILIO_AUTH_TOKEN: Joi.string().allow('').optional(),
   TWILIO_PHONE_NUMBER: Joi.string().allow('').optional(),

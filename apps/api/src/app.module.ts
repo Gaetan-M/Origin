@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -21,6 +21,8 @@ import { MessagingModule } from './modules/messaging/messaging.module';
 import { KinshipProbeModule } from './modules/kinship-probe/kinship-probe.module';
 import { FamilyCodesModule } from './modules/family-codes/family-codes.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AuthorizationModule } from './modules/authorization/authorization.module';
+import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
 @Module({
   imports: [
@@ -59,6 +61,7 @@ import { AdminModule } from './modules/admin/admin.module';
     KinshipProbeModule,
     FamilyCodesModule,
     AdminModule,
+    AuthorizationModule,
   ],
   providers: [
     {
@@ -67,4 +70,9 @@ import { AdminModule } from './modules/admin/admin.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Global correlation-id + structured access logging (additive).
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}

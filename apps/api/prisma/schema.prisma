@@ -154,6 +154,18 @@ enum AdminActionSeverity {
   @@map("admin_action_severity")
 }
 
+// Visibility scope for user-generated content entities.
+// PRIVATE_SELF: owner only. FAMILY: visible within a bounded family-graph
+// degree (see visible_max_degree). PUBLIC: public feed. private -> public is
+// opt-in per item; the public world must never leak family-graph edges.
+enum VisibilityScope {
+  PRIVATE_SELF
+  FAMILY
+  PUBLIC
+
+  @@map("visibility_scope")
+}
+
 // ============================================
 // MODELS
 // ============================================
@@ -471,6 +483,8 @@ model Source {
   mediaFileId      String?   @map("media_file_id") @db.Uuid
   audioTranscript  String?   @map("audio_transcript")
   addedByAccountId String?   @map("added_by_account_id") @db.Uuid
+  visibilityScope  VisibilityScope @default(PRIVATE_SELF) @map("visibility_scope")
+  visibleMaxDegree Int?      @map("visible_max_degree")
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   deletedAt        DateTime? @map("deleted_at") @db.Timestamptz()
 
@@ -499,6 +513,8 @@ model Media {
   personId            String?   @map("person_id") @db.Uuid
   photoYear           Int?      @map("photo_year")
   uploadedByAccountId String?   @map("uploaded_by_account_id") @db.Uuid
+  visibilityScope     VisibilityScope @default(PRIVATE_SELF) @map("visibility_scope")
+  visibleMaxDegree    Int?      @map("visible_max_degree")
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   expiresAt           DateTime? @map("expires_at") @db.Timestamptz()
   deletedAt           DateTime? @map("deleted_at") @db.Timestamptz()
