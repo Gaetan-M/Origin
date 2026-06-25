@@ -7,8 +7,6 @@ import {
   Param,
   UseGuards,
   ParseUUIDPipe,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { IdentityDocumentsService } from './identity-documents.service';

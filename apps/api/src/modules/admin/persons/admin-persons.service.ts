@@ -360,7 +360,13 @@ export class AdminPersonsService {
       union: up.union,
     }));
 
-    const { childrenOf, parentsOf, unionPartners, ...personRest } = person;
+    // Strip relation arrays from the returned person payload.
+    const {
+      childrenOf: _childrenOf,
+      parentsOf: _parentsOf,
+      unionPartners: _unionPartners,
+      ...personRest
+    } = person;
     return {
       person: personRest,
       parents,
