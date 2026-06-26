@@ -864,6 +864,7 @@ enum CulturalContentType {
   CUSTOM
   MUSIC
   OTHER
+  PEOPLE
 
   @@map("cultural_content_type")
 }
@@ -940,6 +941,7 @@ model CulturalContent {
   region                   String?             @db.VarChar(100)
   ethnicGroup              String?             @map("ethnic_group") @db.VarChar(100)
   mediaId                  String?             @map("media_id") @db.Uuid
+  imageUrl                 String?             @map("image_url") @db.VarChar(500)
   visibilityScope          VisibilityScope     @default(PUBLIC) @map("visibility_scope")
   moderationStatus         ModerationStatus    @default(PENDING) @map("moderation_status")
   isFromVerifiedAuthority  Boolean             @default(false) @map("is_from_verified_authority")

@@ -1,4 +1,4 @@
-import type { VisibilityScope } from '@origin/shared-types';
+import { VisibilityScope } from '@origin/shared-types';
 import { apiClient } from './client';
 
 /**
@@ -23,7 +23,8 @@ export type CulturalContentType =
   | 'RITE'
   | 'CUSTOM'
   | 'MUSIC'
-  | 'OTHER';
+  | 'OTHER'
+  | 'PEOPLE';
 
 export const CULTURAL_CONTENT_TYPES: readonly CulturalContentType[] = [
   'LANGUAGE',
@@ -33,6 +34,7 @@ export const CULTURAL_CONTENT_TYPES: readonly CulturalContentType[] = [
   'RITE',
   'CUSTOM',
   'MUSIC',
+  'PEOPLE',
   'OTHER',
 ] as const;
 
@@ -68,6 +70,8 @@ export interface CulturalContentItem {
   ethnicGroup?: string | null;
   /** Resolved public media URL, if any media was attached. */
   mediaUrl?: string | null;
+  /** Optional external hero image URL (e.g. Wikimedia Commons). */
+  imageUrl?: string | null;
   author: CulturalAuthor;
   /** Present only when authored under a cultural authority (chefferie/expert). */
   authority?: CulturalAuthoritySummary | null;
@@ -99,6 +103,54 @@ export interface CreateCulturalContentInput {
 }
 
 /**
+ * Raw item shape returned by `GET /public-feed` (the API's `PublicFeedItem`).
+ * Sanitised, public-only: an attribution display name + a verified flag rather
+ * than the full author/authority objects.
+ */
+interface PublicFeedApiItem {
+  id: string;
+  contentType: CulturalContentType;
+  title: string;
+  body: string | null;
+  languageCode: string | null;
+  region: string | null;
+  ethnicGroup: string | null;
+  mediaId: string | null;
+  imageUrl: string | null;
+  authorDisplayName: string | null;
+  authorityVerified: boolean;
+  createdAt: string;
+}
+
+interface PublicFeedApiPage {
+  items: PublicFeedApiItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+/** Maps a sanitised API item into the richer web view model. */
+function toCulturalContentItem(raw: PublicFeedApiItem): CulturalContentItem {
+  return {
+    id: raw.id,
+    contentType: raw.contentType,
+    title: raw.title,
+    body: raw.body,
+    languageCode: raw.languageCode,
+    region: raw.region,
+    ethnicGroup: raw.ethnicGroup,
+    imageUrl: raw.imageUrl,
+    // The public feed has no resolved media URL; fall back to the external image.
+    mediaUrl: raw.imageUrl,
+    author: { accountId: '', displayName: raw.authorDisplayName ?? '' },
+    authority: null,
+    isFromVerifiedAuthority: raw.authorityVerified,
+    visibilityScope: VisibilityScope.PUBLIC,
+    moderationStatus: 'APPROVED',
+    createdAt: raw.createdAt,
+  };
+}
+
+/**
  * GET /public-feed — cursor-paginated PUBLIC discovery feed of approved
  * cultural-heritage content. Verified-authority content is prioritised
  * server-side. Returns only public-safe fields.
@@ -109,8 +161,58 @@ export async function getPublicFeed(query?: CulturalFeedQuery): Promise<Cultural
   if (query?.limit) params.set('limit', String(query.limit));
   if (query?.contentType) params.set('contentType', query.contentType);
   const qs = params.toString();
-  const { data } = await apiClient<CulturalFeedPage>(`/public-feed${qs ? `?${qs}` : ''}`);
-  return data;
+  const { data } = await apiClient<PublicFeedApiPage>(`/public-feed${qs ? `?${qs}` : ''}`);
+  return {
+    items: data.items.map(toCulturalContentItem),
+    nextCursor: data.nextCursor,
+  };
+}
+
+/**
+ * Raw single-item shape returned by `GET /cultural-content/:id` (the Prisma
+ * `CulturalContent` model). Carries no resolved author display name — only the
+ * authoring account id and the denormalised verified flag.
+ */
+interface CulturalContentApiRecord {
+  id: string;
+  contentType: CulturalContentType;
+  title: string;
+  body: string | null;
+  languageCode: string | null;
+  region: string | null;
+  ethnicGroup: string | null;
+  mediaId: string | null;
+  imageUrl: string | null;
+  isFromVerifiedAuthority: boolean;
+  visibilityScope: VisibilityScope;
+  moderationStatus: ModerationStatus;
+  createdAt: string;
+}
+
+/**
+ * GET /cultural-content/:id — fetch one cultural-heritage item for the detail
+ * read view. Requires auth (the app is authenticated). Maps the raw record into
+ * the web view model; the byline name is not resolved by this endpoint.
+ */
+export async function getCulturalContent(id: string): Promise<CulturalContentItem> {
+  const { data } = await apiClient<CulturalContentApiRecord>(`/cultural-content/${id}`);
+  return {
+    id: data.id,
+    contentType: data.contentType,
+    title: data.title,
+    body: data.body,
+    languageCode: data.languageCode,
+    region: data.region,
+    ethnicGroup: data.ethnicGroup,
+    imageUrl: data.imageUrl,
+    mediaUrl: data.imageUrl,
+    author: { accountId: '', displayName: '' },
+    authority: null,
+    isFromVerifiedAuthority: data.isFromVerifiedAuthority,
+    visibilityScope: data.visibilityScope,
+    moderationStatus: data.moderationStatus,
+    createdAt: data.createdAt,
+  };
 }
 
 /**

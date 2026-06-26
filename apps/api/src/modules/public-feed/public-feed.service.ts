@@ -31,6 +31,8 @@ export interface PublicFeedItem {
   region: string | null;
   ethnicGroup: string | null;
   mediaId: string | null;
+  /** Optional external hero image URL (e.g. Wikimedia Commons). */
+  imageUrl: string | null;
   /** Display name to attribute the content to (authority name preferred). */
   authorDisplayName: string | null;
   /** Whether the content originates from a verified authority/expert/chefferie. */
@@ -88,6 +90,7 @@ interface CulturalContentRow {
   region: string | null;
   ethnicGroup: string | null;
   mediaId: string | null;
+  imageUrl: string | null;
   authorAccountId: string;
   authorityId: string | null;
   isFromVerifiedAuthority: boolean;
@@ -152,6 +155,7 @@ export class PublicFeedService {
         region: true,
         ethnicGroup: true,
         mediaId: true,
+        imageUrl: true,
         authorAccountId: true,
         authorityId: true,
         isFromVerifiedAuthority: true,
@@ -309,6 +313,7 @@ export class PublicFeedService {
       region: row.region,
       ethnicGroup: row.ethnicGroup,
       mediaId: row.mediaId,
+      imageUrl: row.imageUrl,
       authorDisplayName: displayNames.get(row.id) ?? null,
       authorityVerified: row.isFromVerifiedAuthority,
       createdAt: row.createdAt,

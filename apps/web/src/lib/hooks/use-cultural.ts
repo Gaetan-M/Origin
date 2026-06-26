@@ -1,6 +1,11 @@
 'use client';
 
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import * as culturalApi from '@/lib/api/cultural';
 import type {
   CreateCulturalContentInput,
@@ -29,6 +34,17 @@ export function useDiscoverFeed(contentType?: CulturalContentType | null) {
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: isAuthenticated,
+  });
+}
+
+/** Fetch a single cultural-heritage item for the detail read view. */
+export function useCulturalContent(id?: string | null) {
+  const { isAuthenticated } = useAuthStore();
+
+  return useQuery({
+    queryKey: ['cultural-content', id],
+    queryFn: () => culturalApi.getCulturalContent(id as string),
+    enabled: isAuthenticated && Boolean(id),
   });
 }
 
