@@ -9,6 +9,9 @@
 -- Run in Supabase SQL Editor.
 -- ============================================================================
 
+-- Self-sufficient: create the postcard image column if the migration hasn't run yet.
+ALTER TABLE "tourism_places" ADD COLUMN IF NOT EXISTS "image_url" VARCHAR(500);
+
 WITH admin AS (
   SELECT id FROM accounts WHERE phone_number = '+237655922472' LIMIT 1
 ),
