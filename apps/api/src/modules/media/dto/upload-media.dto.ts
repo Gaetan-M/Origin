@@ -15,6 +15,7 @@ export enum MediaPurpose {
   PROFILE_PHOTO = 'PROFILE_PHOTO',
   DOCUMENT_SCAN = 'DOCUMENT_SCAN',
   MEMORIAL_MEDIA = 'MEMORIAL_MEDIA',
+  ALBUM_MEDIA = 'ALBUM_MEDIA',
 }
 
 export class RequestUploadUrlDto {

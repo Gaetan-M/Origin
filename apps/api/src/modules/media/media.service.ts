@@ -596,6 +596,8 @@ export class MediaService {
         return 'document_scan';
       case MediaPurpose.MEMORIAL_MEDIA:
         return 'memorial_media';
+      case MediaPurpose.ALBUM_MEDIA:
+        return 'album_media';
       default:
         return 'other';
     }
@@ -635,6 +637,9 @@ export class MediaService {
         break;
       case MediaPurpose.MEMORIAL_MEDIA:
         folder = 'memorial-media';
+        break;
+      case MediaPurpose.ALBUM_MEDIA:
+        folder = 'album-media';
         break;
       default:
         folder = 'other';

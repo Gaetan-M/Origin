@@ -59,20 +59,25 @@ export function PlaceCard({ place, active = false }: PlaceCardProps) {
         active ? 'border-forest ring-2 ring-forest/30' : 'border-sand',
       )}
     >
-      {/* Postcard hero — always an image (real photo when available, tasteful
-          deterministic fallback otherwise) with category + region overlay. */}
+      {/* Postcard hero — a REAL photo when we have one (Wikimedia/curated),
+          otherwise a clean on-brand placeholder (NEVER a random/unrelated image). */}
       <div className="relative h-44 w-full overflow-hidden bg-sand">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={
-            place.imageUrl ??
-            place.mediaUrl ??
-            `https://picsum.photos/seed/origin-${place.id}/640/420`
-          }
-          alt={place.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
+        {place.imageUrl ?? place.mediaUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={(place.imageUrl ?? place.mediaUrl) as string}
+            alt={place.name}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-forest to-terracotta px-3 text-center">
+            <CategoryIcon className="h-9 w-9 text-white/85" />
+            <span className="line-clamp-2 text-sm font-semibold text-white/90">
+              {place.name}
+            </span>
+          </div>
+        )}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
         <span
           className={cn(
