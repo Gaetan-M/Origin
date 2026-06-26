@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { BadgeCheck, MapPin, Navigation, ChevronRight } from 'lucide-react';
 import type { TourismPlace } from '@/lib/api/tourism';
+import type { EngagementCounts } from '@/lib/api/engagement';
 import { cn } from '@/lib/utils';
+import { EngagementCountsStrip } from '@/components/engagement/engagement-counts-strip';
 import { getCategoryMeta, directionsHref } from './tourism-meta';
 import {
   useCategoryLabel,
@@ -16,11 +18,13 @@ interface PlaceCardProps {
   place: TourismPlace;
   /** Highlight when this card is the one hovered/selected on the map. */
   active?: boolean;
+  /** Compact engagement counts shown as an "alive" strip (fetched in batch). */
+  engagement?: EngagementCounts;
 }
 
 const DESC_PREVIEW_LIMIT = 160;
 
-export function PlaceCard({ place, active = false }: PlaceCardProps) {
+export function PlaceCard({ place, active = false, engagement }: PlaceCardProps) {
   const t = useTourismT();
   const categoryLabel = useCategoryLabel();
   const sourceLabel = useSourceLabel();
@@ -142,6 +146,9 @@ export function PlaceCard({ place, active = false }: PlaceCardProps) {
             <span className="text-charcoal/45"> — {place.sourceRef}</span>
           )}
         </p>
+
+        {/* Engagement "alive" strip */}
+        <EngagementCountsStrip counts={engagement} showRating className="mt-2.5" />
 
         {/* Footer: date + actions */}
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-sand pt-2.5">

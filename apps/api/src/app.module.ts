@@ -35,6 +35,7 @@ import { OralHistoryModule } from './modules/oral-history/oral-history.module';
 import { LiveModule } from './modules/live/live.module';
 import { TourismModule } from './modules/tourism/tourism.module';
 import { LearningModule } from './modules/learning/learning.module';
+import { EngagementModule } from './modules/engagement/engagement.module';
 import { SearchModule } from './search/search.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -89,6 +90,7 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     LiveModule,
     TourismModule,
     LearningModule,
+    EngagementModule,
     SearchModule,
   ],
   providers: [

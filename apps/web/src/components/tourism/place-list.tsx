@@ -13,6 +13,7 @@ import {
 import type { TourismCategory, TourismPlace } from '@/lib/api/tourism';
 import { TOURISM_CATEGORIES } from '@/lib/api/tourism';
 import { useTourismPlaces } from '@/lib/hooks/use-tourism';
+import { useEngagementBatch } from '@/lib/hooks/use-engagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,6 +130,11 @@ export function PlaceList() {
     () => items.filter((p) => toLatLng(p.latitude, p.longitude)).length,
     [items],
   );
+
+  // Batch-fetch engagement counts for the visible cards so each card shows a
+  // subtle "alive" strip without firing its own request.
+  const visibleIds = useMemo(() => items.map((p) => p.id), [items]);
+  const { data: engagementCounts } = useEngagementBatch('tourism-place', visibleIds);
 
   const hasActiveFilters =
     category !== null || apiRegion !== null || verifiedOnly || search.trim() !== '';
@@ -283,7 +289,11 @@ export function PlaceList() {
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {items.map((place) => (
-              <PlaceCard key={place.id} place={place} />
+              <PlaceCard
+                key={place.id}
+                place={place}
+                engagement={engagementCounts?.[place.id]}
+              />
             ))}
           </div>
 

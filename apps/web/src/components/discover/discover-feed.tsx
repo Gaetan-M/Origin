@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Compass, AlertCircle } from 'lucide-react';
 import type { CulturalContentType } from '@/lib/api/cultural';
 import { useDiscoverFeed } from '@/lib/hooks/use-cultural';
+import { useEngagementBatch } from '@/lib/hooks/use-engagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -45,7 +46,12 @@ export function DiscoverFeed() {
     isFetchingNextPage,
   } = useDiscoverFeed(contentType);
 
-  const items = data?.pages.flatMap((p) => p.items) ?? [];
+  const items = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+
+  // Batch-fetch engagement counts for the visible cards so each card shows a
+  // subtle "alive" strip without firing its own request.
+  const visibleIds = useMemo(() => items.map((i) => i.id), [items]);
+  const { data: engagementCounts } = useEngagementBatch('cultural-content', visibleIds);
 
   return (
     <div className="space-y-3">
@@ -65,7 +71,11 @@ export function DiscoverFeed() {
       ) : (
         <>
           {items.map((item) => (
-            <CulturalCard key={item.id} item={item} />
+            <CulturalCard
+              key={item.id}
+              item={item}
+              engagement={engagementCounts?.[item.id]}
+            />
           ))}
 
           {hasNextPage && (

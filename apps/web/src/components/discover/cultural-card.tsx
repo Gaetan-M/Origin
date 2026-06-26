@@ -17,12 +17,16 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { CulturalContentItem, CulturalContentType } from '@/lib/api/cultural';
+import type { EngagementCounts } from '@/lib/api/engagement';
 import { cn } from '@/lib/utils';
+import { EngagementCountsStrip } from '@/components/engagement/engagement-counts-strip';
 import { useContentTypeLabel, useDiscoverT, useDiscoverLocale } from './discover-i18n';
 import { RichText } from './rich-text';
 
 interface CulturalCardProps {
   item: CulturalContentItem;
+  /** Compact engagement counts shown as an "alive" strip (fetched in batch). */
+  engagement?: EngagementCounts;
 }
 
 /** Maps a content type to an icon + accent classes. */
@@ -49,7 +53,7 @@ function getTypeMeta(type: CulturalContentType): { icon: LucideIcon; accent: str
   }
 }
 
-export function CulturalCard({ item }: CulturalCardProps) {
+export function CulturalCard({ item, engagement }: CulturalCardProps) {
   const t = useDiscoverT();
   const typeLabel = useContentTypeLabel();
   const locale = useDiscoverLocale();
@@ -156,6 +160,9 @@ export function CulturalCard({ item }: CulturalCardProps) {
             ))}
           </div>
         )}
+
+        {/* Engagement "alive" strip */}
+        <EngagementCountsStrip counts={engagement} className="mt-2.5" />
 
         {/* Footer affordance */}
         <div className="mt-3 flex items-center justify-end border-t border-sand pt-2.5">

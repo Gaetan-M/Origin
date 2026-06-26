@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { cn } from '@/lib/utils';
+import { EngagementSection } from '@/components/engagement/engagement-section';
 import { useContentTypeLabel, useDiscoverT, useDiscoverLocale } from './discover-i18n';
 import { RichText } from './rich-text';
 
@@ -175,6 +176,9 @@ export function CulturalDetail({ id }: { id: string | null }) {
           <RichText text={item.body} />
         </section>
       )}
+
+      {/* Engagement — reactions, photos, comments, suggest-edit (no rating) */}
+      <EngagementSection target="cultural-content" id={item.id} />
 
       <div className="pt-2">
         <Button asChild variant="outline" size="sm">

@@ -598,6 +598,8 @@ export class MediaService {
         return 'memorial_media';
       case MediaPurpose.ALBUM_MEDIA:
         return 'album_media';
+      case MediaPurpose.CONTRIBUTED_MEDIA:
+        return 'contributed_media';
       default:
         return 'other';
     }
@@ -640,6 +642,9 @@ export class MediaService {
         break;
       case MediaPurpose.ALBUM_MEDIA:
         folder = 'album-media';
+        break;
+      case MediaPurpose.CONTRIBUTED_MEDIA:
+        folder = 'contributed-media';
         break;
       default:
         folder = 'other';

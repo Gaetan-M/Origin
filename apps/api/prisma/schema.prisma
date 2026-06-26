@@ -1418,3 +1418,102 @@ model LessonEnrollment {
   @@index([accountId], map: "idx_lesson_enrollments_account")
   @@map("lesson_enrollments")
 }
+
+// ============================================
+// ENGAGEMENT LAYER — polymorphic interactions over PUBLIC discovery entities
+// (tourism places + cultural content). Reactions, comments, contributed photos
+// (moderated), star ratings (tourism only) and edit-suggestions. `target_id` is
+// a plain polymorphic UUID keyed by `target_type` (no FK on it). Cross-aggregate
+// references to accounts / media / tourism_places are plain scalar UUIDs in the
+// Prisma schema; the real FOREIGN KEYs are declared in the migration. This layer
+// carries NO family-graph data and NEVER leaks phone numbers or private person
+// data — only public author display names are surfaced (resolved in the service).
+// ============================================
+
+enum EngagementTargetType {
+  TOURISM_PLACE
+  CULTURAL_CONTENT
+
+  @@map("engagement_target_type")
+}
+
+// One replaceable reaction per (target, account). reaction_type is a free String
+// validated by DTO against a closed vocabulary (LIKE / LOVE / WOW / VISITED).
+model EntityReaction {
+  id           String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  targetType   EngagementTargetType @map("target_type")
+  targetId     String               @map("target_id") @db.Uuid
+  accountId    String               @map("account_id") @db.Uuid
+  reactionType String               @map("reaction_type") @db.VarChar(30)
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([targetType, targetId, accountId], map: "uq_entity_reaction")
+  @@index([targetType, targetId], map: "idx_entity_reactions_target")
+  @@map("entity_reactions")
+}
+
+// Soft-deletable comment on a public entity. Author or moderator may delete.
+model EntityComment {
+  id         String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  targetType EngagementTargetType @map("target_type")
+  targetId   String               @map("target_id") @db.Uuid
+  accountId  String               @map("account_id") @db.Uuid
+  body       String
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt  DateTime?            @map("deleted_at") @db.Timestamptz()
+
+  @@index([targetType, targetId, createdAt], map: "idx_entity_comments_target_created")
+  @@map("entity_comments")
+}
+
+// A user-contributed photo awaiting moderation. APPROVED photos are shown to
+// everyone; the contributor also sees their own PENDING uploads.
+model EntityPhoto {
+  id                  String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  targetType          EngagementTargetType @map("target_type")
+  targetId            String               @map("target_id") @db.Uuid
+  accountId           String               @map("account_id") @db.Uuid
+  mediaId             String               @map("media_id") @db.Uuid
+  caption             String?              @db.VarChar(300)
+  status              String               @default("PENDING") @db.VarChar(20)
+  reviewedByAccountId String?              @map("reviewed_by_account_id") @db.Uuid
+  reviewedAt          DateTime?            @map("reviewed_at") @db.Timestamptz()
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([targetType, targetId, status], map: "idx_entity_photos_target_status")
+  @@map("entity_photos")
+}
+
+// A star rating (1..5) for a tourism place. One replaceable rating per account.
+model PlaceRating {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  placeId   String   @map("place_id") @db.Uuid
+  accountId String   @map("account_id") @db.Uuid
+  stars     Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([placeId, accountId], map: "uq_place_rating")
+  @@index([placeId], map: "idx_place_ratings_place")
+  @@map("place_ratings")
+}
+
+// A proposed correction to a field on a public entity. Recorded for moderator
+// review; APPROVE/REJECT only records the decision (never auto-applies the edit).
+model EditSuggestion {
+  id                  String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  targetType          EngagementTargetType @map("target_type")
+  targetId            String               @map("target_id") @db.Uuid
+  accountId           String               @map("account_id") @db.Uuid
+  field               String               @db.VarChar(60)
+  proposedValue       String               @map("proposed_value")
+  note                String?
+  status              String               @default("PENDING") @db.VarChar(20)
+  reviewedByAccountId String?              @map("reviewed_by_account_id") @db.Uuid
+  reviewedAt          DateTime?            @map("reviewed_at") @db.Timestamptz()
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([status], map: "idx_edit_suggestions_status")
+  @@map("edit_suggestions")
+}

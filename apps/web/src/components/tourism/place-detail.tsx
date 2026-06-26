@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { cn } from '@/lib/utils';
+import { EngagementSection } from '@/components/engagement/engagement-section';
 import { PlaceCard } from './place-card';
 import { TourismMapFrame } from './tourism-map-frame';
 import { getCategoryMeta, toLatLng, directionsHref } from './tourism-meta';
@@ -237,6 +238,9 @@ export function PlaceDetail({ id }: { id: string | null }) {
           </div>
         </div>
       </section>
+
+      {/* Engagement — reactions, rating, photos, comments, suggest-edit */}
+      <EngagementSection target="tourism-place" id={place.id} showRating />
 
       {/* Affinity — places near the user's village of origin */}
       {affinity.length > 0 && (

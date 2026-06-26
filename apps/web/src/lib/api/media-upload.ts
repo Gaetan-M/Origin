@@ -21,8 +21,14 @@ interface ConfirmUploadResponse {
   confirmed: boolean;
 }
 
-/** Media purposes understood by the backend media module for Living Memory. */
-export type LivingMemoryMediaPurpose = 'ALBUM_MEDIA' | 'MEMORIAL_MEDIA';
+/**
+ * Media purposes understood by the backend media module for Living Memory and
+ * the public engagement layer (contributed photos on tourism / cultural items).
+ */
+export type LivingMemoryMediaPurpose =
+  | 'ALBUM_MEDIA'
+  | 'MEMORIAL_MEDIA'
+  | 'CONTRIBUTED_MEDIA';
 
 export async function uploadMediaFile(
   file: File,
