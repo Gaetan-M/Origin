@@ -830,3 +830,150 @@ model FeedComment {
   @@index([accountId], map: "idx_feed_comments_account")
   @@map("feed_comments")
 }
+
+// ============================================
+// PHASE 2 — PUBLIC CULTURAL HERITAGE & MODERATION
+// Additive models for the PUBLIC discovery world (cultural heritage content
+// authored by the community and by verified authorities/chefferies) plus a
+// generic moderation report queue.
+//
+// These models live in the PUBLIC world and must NEVER reference or leak
+// family-graph edges, relationships, degrees, phone numbers or other private
+// person data. Cross-aggregate references to accounts/media are kept as plain
+// scalar UUID columns here; the real FOREIGN KEY constraints are declared in
+// the hand-written migration, keeping the change additive on the existing
+// Account/Media models (no back-relation fields required on them). Relations
+// strictly between the new Phase-2 models are expressed as full Prisma
+// relations.
+// ============================================
+
+enum CulturalAuthorityKind {
+  CHEFFERIE
+  EXPERT
+  INSTITUTION
+
+  @@map("cultural_authority_kind")
+}
+
+enum CulturalContentType {
+  LANGUAGE
+  RECIPE
+  TALE
+  PROVERB
+  RITE
+  CUSTOM
+  MUSIC
+  OTHER
+
+  @@map("cultural_content_type")
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("moderation_status")
+}
+
+enum ModerationTargetType {
+  CULTURAL_CONTENT
+  FEED_POST
+  FEED_COMMENT
+  PERSON
+
+  @@map("moderation_target_type")
+}
+
+enum ModerationReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+
+  @@map("moderation_report_status")
+}
+
+// A verified (or pending-verification) cultural authority: a chefferie, a
+// subject-matter expert, or an institution. One authority per account
+// (account_id unique). Verification is performed by a moderator/admin
+// (verified_by_account_id) and never exposes the account's private data.
+model CulturalAuthority {
+  id                   String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  accountId            String                @unique @map("account_id") @db.Uuid
+  kind                 CulturalAuthorityKind
+  displayName          String                @map("display_name") @db.VarChar(255)
+  region               String?               @db.VarChar(100)
+  ethnicGroup          String?               @map("ethnic_group") @db.VarChar(100)
+  bio                  String?
+  verified             Boolean               @default(false)
+  verifiedAt           DateTime?             @map("verified_at") @db.Timestamptz()
+  verifiedByAccountId  String?               @map("verified_by_account_id") @db.Uuid
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt            DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt            DateTime?             @map("deleted_at") @db.Timestamptz()
+
+  contents CulturalContent[]
+
+  @@index([kind], map: "idx_cultural_authorities_kind")
+  @@index([verified], map: "idx_cultural_authorities_verified")
+  @@index([ethnicGroup], map: "idx_cultural_authorities_ethnic_group")
+  @@index([region], map: "idx_cultural_authorities_region")
+  @@map("cultural_authorities")
+}
+
+// A piece of PUBLIC cultural-heritage content (language, recipe, tale,
+// proverb, rite, custom, music, ...). Authored by an account and optionally
+// attributed to a CulturalAuthority. Goes through moderation
+// (moderation_status) before appearing in the public discovery feed.
+// visibility_scope defaults to PUBLIC; this content carries NO family-graph
+// data. is_from_verified_authority is a denormalized flag used to prioritize
+// verified-authority content in the discovery feed.
+model CulturalContent {
+  id                       String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  authorAccountId          String              @map("author_account_id") @db.Uuid
+  authorityId              String?             @map("authority_id") @db.Uuid
+  contentType              CulturalContentType @map("content_type")
+  title                    String              @db.VarChar(255)
+  body                     String?
+  languageCode             String?             @map("language_code") @db.VarChar(10)
+  region                   String?             @db.VarChar(100)
+  ethnicGroup              String?             @map("ethnic_group") @db.VarChar(100)
+  mediaId                  String?             @map("media_id") @db.Uuid
+  visibilityScope          VisibilityScope     @default(PUBLIC) @map("visibility_scope")
+  moderationStatus         ModerationStatus    @default(PENDING) @map("moderation_status")
+  isFromVerifiedAuthority  Boolean             @default(false) @map("is_from_verified_authority")
+  createdAt                DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt                DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt                DateTime?           @map("deleted_at") @db.Timestamptz()
+
+  authority CulturalAuthority? @relation(fields: [authorityId], references: [id])
+
+  @@index([moderationStatus, createdAt(sort: Desc)], map: "idx_cultural_content_moderation_created")
+  @@index([contentType], map: "idx_cultural_content_type")
+  @@index([ethnicGroup], map: "idx_cultural_content_ethnic_group")
+  @@index([authorityId], map: "idx_cultural_content_authority")
+  @@map("cultural_content")
+}
+
+// A generic moderation report raised by an account against any moderatable
+// target (cultural content, feed post, feed comment, person). Drives the
+// real-time moderation queue. target_id is a plain UUID (polymorphic by
+// target_type) so no FK is declared for it.
+model ModerationReport {
+  id                   String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reporterAccountId    String                 @map("reporter_account_id") @db.Uuid
+  targetType           ModerationTargetType   @map("target_type")
+  targetId             String                 @map("target_id") @db.Uuid
+  reason               String                 @db.VarChar(50)
+  details              String?
+  status               ModerationReportStatus @default(OPEN)
+  resolvedByAccountId  String?                @map("resolved_by_account_id") @db.Uuid
+  resolution           String?
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz()
+  resolvedAt           DateTime?              @map("resolved_at") @db.Timestamptz()
+
+  @@index([status, createdAt], map: "idx_moderation_reports_status_created")
+  @@index([targetType, targetId], map: "idx_moderation_reports_target")
+  @@map("moderation_reports")
+}

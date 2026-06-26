@@ -25,6 +25,9 @@ import { AuthorizationModule } from './modules/authorization/authorization.modul
 import { EventingModule } from './eventing/eventing.module';
 import { LifeEventsModule } from './modules/life-events/life-events.module';
 import { FamilyFeedModule } from './modules/family-feed/family-feed.module';
+import { CulturalContentModule } from './modules/cultural-content/cultural-content.module';
+import { PublicFeedModule } from './modules/public-feed/public-feed.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
 import { SearchModule } from './search/search.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -69,6 +72,9 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     EventingModule,
     LifeEventsModule,
     FamilyFeedModule,
+    CulturalContentModule,
+    PublicFeedModule,
+    ModerationModule,
     SearchModule,
   ],
   providers: [

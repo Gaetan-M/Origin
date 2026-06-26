@@ -44,6 +44,7 @@
   "nav": {
     "dashboard": "Home",
     "feed": "Family feed",
+    "discover": "Discover",
     "myPersons": "People",
     "myTree": "The tree",
     "search": "Search",

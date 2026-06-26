@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { InMemorySearchIndexer } from './in-memory-search-indexer';
 import { LifeEventIndexingSubscriber } from './life-event-indexing.subscriber';
+import { CulturalIndexingSubscriber } from './cultural-indexing.subscriber';
 import { SEARCH_INDEXER } from './search-indexer.interface';
 
 /**
@@ -15,7 +16,8 @@ import { SEARCH_INDEXER } from './search-indexer.interface';
   providers: [
     { provide: SEARCH_INDEXER, useClass: InMemorySearchIndexer },
     LifeEventIndexingSubscriber,
+    CulturalIndexingSubscriber,
   ],
-  exports: [SEARCH_INDEXER, LifeEventIndexingSubscriber],
+  exports: [SEARCH_INDEXER, LifeEventIndexingSubscriber, CulturalIndexingSubscriber],
 })
 export class SearchModule {}
