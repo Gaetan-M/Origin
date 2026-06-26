@@ -28,6 +28,7 @@ import { FamilyFeedModule } from './modules/family-feed/family-feed.module';
 import { CulturalContentModule } from './modules/cultural-content/cultural-content.module';
 import { PublicFeedModule } from './modules/public-feed/public-feed.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
+import { KinshipCheckModule } from './modules/kinship-check/kinship-check.module';
 import { SearchModule } from './search/search.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -75,6 +76,7 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     CulturalContentModule,
     PublicFeedModule,
     ModerationModule,
+    KinshipCheckModule,
     SearchModule,
   ],
   providers: [

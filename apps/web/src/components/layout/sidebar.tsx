@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Newspaper, Compass, TreePine, Users, Bell, User, Link2 } from 'lucide-react';
+import { Home, Newspaper, Compass, TreePine, Users, HeartHandshake, Bell, User, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
 import { useT } from '@/i18n';
@@ -17,6 +17,7 @@ const NAV_KEYS = [
   { href: '/discover', icon: Compass, key: 'nav.discover' },
   { href: '/tree', icon: TreePine, key: 'nav.myTree' },
   { href: '/persons', icon: Users, key: 'nav.myPersons' },
+  { href: '/are-we-related', icon: HeartHandshake, key: 'nav.areWeRelated' },
   { href: '/connect', icon: Link2, key: 'nav.connect' },
   { href: '/notifications', icon: Bell, key: 'nav.notifications' },
   { href: '/profile', icon: User, key: 'nav.profile' },

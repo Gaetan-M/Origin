@@ -977,3 +977,55 @@ model ModerationReport {
   @@index([targetType, targetId], map: "idx_moderation_reports_target")
   @@map("moderation_reports")
 }
+
+// ============================================
+// PHASE 3 — "SOMMES-NOUS PARENTS ?" (KINSHIP CHECK)
+// The signature consent-gated relatedness probe. Two accounts mutually
+// consent; the system computes whether they are related THROUGH the global
+// graph (via GraphDegreeService) and persists ONLY the aggregate result:
+// a boolean, a bounded degree, and a derived human label (FR/EN).
+//
+// PRIVACY INVARIANT (non-negotiable): NO person ids, names, ancestors, or
+// graph path are EVER stored here. The graph is read transiently at compute
+// time and everything except the degree + label is discarded. Cross-aggregate
+// references to accounts are kept as plain scalar UUID columns (the real
+// FOREIGN KEY constraints are declared in the hand-written migration), keeping
+// this change additive on the existing Account model (no back-relation fields
+// required on it). Computation happens ONLY after BOTH parties consent.
+// ============================================
+
+enum KinshipCheckStatus {
+  PENDING_CONSENT
+  CONSENTED
+  DECLINED
+  COMPUTED
+  EXPIRED
+  CANCELLED
+
+  @@map("kinship_check_status")
+}
+
+model KinshipCheck {
+  id                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  requesterAccountId  String             @map("requester_account_id") @db.Uuid
+  targetAccountId     String?            @map("target_account_id") @db.Uuid
+  targetPhone         String?            @map("target_phone") @db.VarChar(20)
+  status              KinshipCheckStatus @default(PENDING_CONSENT)
+  requesterConsent    Boolean            @default(true) @map("requester_consent")
+  targetConsent       Boolean            @default(false) @map("target_consent")
+  resultDegree        Int?               @map("result_degree")
+  resultRelated       Boolean?           @map("result_related")
+  resultLabelFr       String?            @map("result_label_fr") @db.VarChar(120)
+  resultLabelEn       String?            @map("result_label_en") @db.VarChar(120)
+  computedAt          DateTime?          @map("computed_at") @db.Timestamptz()
+  expiresAt           DateTime?          @map("expires_at") @db.Timestamptz()
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt           DateTime?          @map("deleted_at") @db.Timestamptz()
+
+  @@index([requesterAccountId], map: "idx_kinship_checks_requester")
+  @@index([targetAccountId], map: "idx_kinship_checks_target")
+  @@index([status], map: "idx_kinship_checks_status")
+  @@index([targetPhone], map: "idx_kinship_checks_target_phone")
+  @@map("kinship_checks")
+}
