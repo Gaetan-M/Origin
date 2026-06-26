@@ -92,7 +92,7 @@ describe('KinshipCheckService', () => {
       findMany: jest.Mock;
       update: jest.Mock;
     };
-    account: { findUnique: jest.Mock; findFirst: jest.Mock };
+    account: { findUnique: jest.Mock; findFirst: jest.Mock; findMany: jest.Mock };
     claim: { findFirst: jest.Mock };
     familyCode: { findUnique: jest.Mock };
     contribution: { create: jest.Mock };
@@ -109,7 +109,11 @@ describe('KinshipCheckService', () => {
         findMany: jest.fn(),
         update: jest.fn(),
       },
-      account: { findUnique: jest.fn(), findFirst: jest.fn() },
+      account: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       claim: { findFirst: jest.fn() },
       familyCode: { findUnique: jest.fn() },
       contribution: { create: jest.fn().mockResolvedValue({}) },
@@ -151,8 +155,9 @@ describe('KinshipCheckService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('creates a PENDING_CONSENT check, notifies the target, and never leaks ids', async () => {
+    it('creates a PENDING_CONSENT check, notifies the target, resolves the counterparty name, and never leaks ids', async () => {
       prisma.account.findFirst.mockResolvedValue({ id: TARGET });
+      prisma.account.findMany.mockResolvedValue([{ id: TARGET, fullName: 'Awa Mballa' }]);
       const created = baseCheck();
       prisma.kinshipCheck.create.mockResolvedValue(created);
 
@@ -169,7 +174,25 @@ describe('KinshipCheckService', () => {
       expect(graphDegree.computeDegree).not.toHaveBeenCalled();
 
       expect(view.status).toBe(KinshipCheckStatus.PENDING_CONSENT);
+      expect(view.direction).toBe('outgoing');
+      // Display name surfaced for informed consent — never a phone/person id.
+      expect(view.counterpartyName).toBe('Awa Mballa');
+      expect(view.invitedByPhone).toBe(false);
       expect(view.result).toBeNull();
+      assertNoLeak(view);
+    });
+
+    it('marks invitedByPhone and null name for an unresolved phone invite', async () => {
+      prisma.account.findUnique.mockResolvedValue({ phoneNumber: '+237699999999' });
+      prisma.account.findFirst.mockResolvedValue(null); // phone not yet on Origin
+      prisma.kinshipCheck.create.mockResolvedValue(
+        baseCheck({ targetAccountId: null, targetPhone: '+237690000000' }),
+      );
+
+      const view = await service.initiate(REQUESTER, { targetPhone: '+237690000000' });
+
+      expect(view.invitedByPhone).toBe(true);
+      expect(view.counterpartyName).toBeNull();
       assertNoLeak(view);
     });
 
@@ -322,9 +345,13 @@ describe('KinshipCheckService', () => {
   // --- listMine ------------------------------------------------------------
 
   describe('listMine', () => {
-    it('projects checks to privacy-safe views with no person/phone fields', async () => {
+    it('splits checks into incoming/outgoing privacy-safe views with no person/phone fields', async () => {
       prisma.account.findUnique.mockResolvedValue({ phoneNumber: '+237690000000' });
+      prisma.account.findMany.mockResolvedValue([
+        { id: TARGET, fullName: 'Awa Mballa' },
+      ]);
       prisma.kinshipCheck.findMany.mockResolvedValue([
+        // Outgoing: REQUESTER initiated against TARGET.
         baseCheck({
           status: KinshipCheckStatus.COMPUTED,
           resultDegree: 2,
@@ -333,21 +360,71 @@ describe('KinshipCheckService', () => {
           resultLabelEn: 'Second-degree relative',
           computedAt: new Date(),
         }),
-        baseCheck({ id: 'check-2', status: KinshipCheckStatus.PENDING_CONSENT }),
+        // Incoming: someone else initiated against REQUESTER.
+        baseCheck({
+          id: 'check-2',
+          requesterAccountId: 'acc-other',
+          targetAccountId: REQUESTER,
+          status: KinshipCheckStatus.PENDING_CONSENT,
+        }),
       ]);
 
-      const views = await service.listMine(REQUESTER);
+      const overview = await service.listMine(REQUESTER);
 
-      expect(views).toHaveLength(2);
-      expect(views[0].result).toEqual({
+      expect(overview.outgoing).toHaveLength(1);
+      expect(overview.incoming).toHaveLength(1);
+      expect(overview.outgoing[0].direction).toBe('outgoing');
+      expect(overview.outgoing[0].counterpartyName).toBe('Awa Mballa');
+      expect(overview.outgoing[0].result).toEqual({
         related: true,
         degree: 2,
         labelFr: 'Parent au 2e degré',
         labelEn: 'Second-degree relative',
       });
-      // Pending checks expose no result.
-      expect(views[1].result).toBeNull();
-      assertNoLeak(views);
+      // Pending incoming check exposes no result.
+      expect(overview.incoming[0].direction).toBe('incoming');
+      expect(overview.incoming[0].result).toBeNull();
+      assertNoLeak(overview);
+    });
+  });
+
+  // --- cancel --------------------------------------------------------------
+
+  describe('cancel', () => {
+    it('lets the requester cancel a pending check (status -> CANCELLED), audited', async () => {
+      prisma.kinshipCheck.findFirst.mockResolvedValue(baseCheck());
+      prisma.kinshipCheck.update.mockResolvedValue(
+        baseCheck({ status: KinshipCheckStatus.CANCELLED }),
+      );
+
+      const view = await service.cancel('check-1', REQUESTER);
+
+      const updateArg = prisma.kinshipCheck.update.mock.calls[0][0].data;
+      expect(updateArg.status).toBe(KinshipCheckStatus.CANCELLED);
+      expect(view.status).toBe(KinshipCheckStatus.CANCELLED);
+      const cancelAudit = prisma.contribution.create.mock.calls.find(
+        (c) => c[0].data.action === 'CANCEL',
+      );
+      expect(cancelAudit).toBeDefined();
+      expect(graphDegree.computeDegree).not.toHaveBeenCalled();
+      assertNoLeak(view);
+    });
+
+    it('forbids a non-requester from cancelling', async () => {
+      prisma.kinshipCheck.findFirst.mockResolvedValue(baseCheck());
+      await expect(service.cancel('check-1', TARGET)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(prisma.kinshipCheck.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects cancelling a check that is no longer pending', async () => {
+      prisma.kinshipCheck.findFirst.mockResolvedValue(
+        baseCheck({ status: KinshipCheckStatus.COMPUTED }),
+      );
+      await expect(service.cancel('check-1', REQUESTER)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
   });
 });

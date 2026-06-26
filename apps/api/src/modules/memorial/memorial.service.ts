@@ -17,6 +17,30 @@ import { VisibilityGuard } from '../authorization/visibility.guard';
 import { CreateTributeDto } from './dto/create-tribute.dto';
 
 /**
+ * A tribute enriched with the display fields the web client reads. Private
+ * graph data (e.g. visibleMaxDegree) is intentionally omitted; the author's
+ * displayName is resolved from Account.fullName.
+ */
+export interface MemorialTributeView {
+  id: string;
+  personId: string;
+  authorAccountId: string;
+  authorDisplayName: string | null;
+  kind: MemorialTributeKind;
+  message: string | null;
+  mediaId: string | null;
+  visibilityScope: VisibilityScope;
+  createdAt: Date;
+}
+
+/** Lightweight memorial header counts shown above the tribute wall. */
+export interface MemorialSummaryView {
+  personId: string;
+  candleCount: number;
+  tributeCount: number;
+}
+
+/**
  * Memorial tributes (Phase 4 — Living Memory).
  *
  * A memorial tribute is an act of remembrance left on an ancestor who has
@@ -50,7 +74,7 @@ export class MemorialService {
     authorAccountId: string,
     personId: string,
     dto: CreateTributeDto,
-  ): Promise<MemorialTribute> {
+  ): Promise<MemorialTributeView> {
     const person = await this.prisma.person.findFirst({
       where: { id: personId, deletedAt: null },
       select: { id: true, lifeStatus: true },
@@ -76,8 +100,8 @@ export class MemorialService {
 
     const visibilityScope = dto.visibilityScope ?? VisibilityScope.FAMILY;
 
-    return this.prisma.$transaction(async (tx) => {
-      const tribute = await tx.memorialTribute.create({
+    const tribute = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.memorialTribute.create({
         data: {
           personId: person.id,
           authorAccountId,
@@ -92,7 +116,7 @@ export class MemorialService {
       await this.writeContribution(
         tx,
         authorAccountId,
-        tribute.id,
+        created.id,
         'CREATE',
         {
           newValue: {
@@ -105,8 +129,11 @@ export class MemorialService {
         },
       );
 
-      return tribute;
+      return created;
     });
+
+    const names = await this.resolveAuthorNames([tribute.authorAccountId]);
+    return this.toView(tribute, names.get(tribute.authorAccountId) ?? null);
   }
 
   /**
@@ -117,6 +144,42 @@ export class MemorialService {
    * the family of the departed may gather around their memory.
    */
   async listTributes(
+    personId: string,
+    requesterAccountId: string,
+  ): Promise<MemorialTributeView[]> {
+    const visible = await this.listVisibleTributes(personId, requesterAccountId);
+    const names = await this.resolveAuthorNames(
+      visible.map((tribute) => tribute.authorAccountId),
+    );
+    return visible.map((tribute) =>
+      this.toView(tribute, names.get(tribute.authorAccountId) ?? null),
+    );
+  }
+
+  /**
+   * Memorial header counts for a deceased person, computed over only the
+   * tributes the requester is allowed to see (no leakage of hidden tributes).
+   *   - candleCount  : number of visible CANDLE tributes
+   *   - tributeCount : total number of visible tributes (all kinds)
+   */
+  async getSummary(
+    personId: string,
+    requesterAccountId: string,
+  ): Promise<MemorialSummaryView> {
+    const visible = await this.listVisibleTributes(personId, requesterAccountId);
+    const candleCount = visible.filter(
+      (tribute) => tribute.kind === MemorialTributeKind.CANDLE,
+    ).length;
+    return { personId, candleCount, tributeCount: visible.length };
+  }
+
+  /**
+   * Loads a person's tributes (newest first) and filters them through the
+   * shared visibility model. The "owner" node for FAMILY degree computation is
+   * the deceased person — so the family of the departed gathers around their
+   * memory.
+   */
+  private async listVisibleTributes(
     personId: string,
     requesterAccountId: string,
   ): Promise<MemorialTribute[]> {
@@ -230,6 +293,45 @@ export class MemorialService {
     if (!media) {
       throw new NotFoundException('Media not found / Média introuvable');
     }
+  }
+
+  /**
+   * Resolves display names for a set of author accounts from Account.fullName.
+   * Returns a map keyed by accountId; a missing/empty name maps to null so the
+   * web can fall back to its own "someone" label. Never exposes phone/CNI/OTP.
+   */
+  private async resolveAuthorNames(
+    accountIds: string[],
+  ): Promise<Map<string, string | null>> {
+    const unique = [...new Set(accountIds)];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const accounts = await this.prisma.account.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, fullName: true },
+    });
+    return new Map(
+      accounts.map((account) => [account.id, account.fullName ?? null]),
+    );
+  }
+
+  /** Projects a DB tribute to the public-safe view shape the web reads. */
+  private toView(
+    tribute: MemorialTribute,
+    authorDisplayName: string | null,
+  ): MemorialTributeView {
+    return {
+      id: tribute.id,
+      personId: tribute.personId,
+      authorAccountId: tribute.authorAccountId,
+      authorDisplayName,
+      kind: tribute.kind,
+      message: tribute.message,
+      mediaId: tribute.mediaId,
+      visibilityScope: tribute.visibilityScope,
+      createdAt: tribute.createdAt,
+    };
   }
 
   /** Resolves the person node an account is verified-claimed as. */

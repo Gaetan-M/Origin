@@ -60,18 +60,35 @@ export interface KinshipResultView {
 }
 
 /**
- * A privacy-safe projection of a KinshipCheck. Contains NO person ids, names,
- * ancestors, path, or phone number — only the lifecycle state, the direction
- * relative to the caller, and (when COMPUTED) the aggregate result.
+ * A privacy-safe projection of a KinshipCheck. Contains NO person ids, graph
+ * path, ancestors, or phone number — only the lifecycle state, the direction
+ * relative to the caller, the counterparty's DISPLAY NAME (surfaced solely so a
+ * target can give informed consent — never a phone, tree or person id), and
+ * (when COMPUTED) the aggregate result.
  */
 export interface KinshipCheckView {
   id: string;
   direction: 'incoming' | 'outgoing';
   status: KinshipCheckStatus;
+  /**
+   * Display name of the OTHER party (resolved from Account.fullName). Null when
+   * the counterparty has no account yet (raw phone invite) or has no name set.
+   */
+  counterpartyName: string | null;
+  /** True when this check was opened against a phone not yet on Origin. */
+  invitedByPhone: boolean;
   createdAt: Date;
-  computedAt: Date | null;
   expiresAt: Date | null;
   result: KinshipResultView | null;
+}
+
+/**
+ * The caller's checks split by direction, matching the web `/kinship-checks`
+ * overview contract. Each entry is the privacy-safe {@link KinshipCheckView}.
+ */
+export interface KinshipChecksOverview {
+  incoming: KinshipCheckView[];
+  outgoing: KinshipCheckView[];
 }
 
 /**
@@ -152,14 +169,16 @@ export class KinshipCheckService {
       });
     }
 
-    return this.toView(check, requesterAccountId);
+    return this.toViewWithName(check, requesterAccountId);
   }
 
   /**
-   * Incoming + outgoing checks for the account, each reduced to the privacy-safe
-   * view. Results are only present on COMPUTED checks and never include persons.
+   * Incoming + outgoing checks for the account, split by direction and each
+   * reduced to the privacy-safe view. Results are only present on COMPUTED
+   * checks and never include persons. Counterparty display names are resolved
+   * from Account.fullName in a single batched query.
    */
-  async listMine(accountId: string): Promise<KinshipCheckView[]> {
+  async listMine(accountId: string): Promise<KinshipChecksOverview> {
     const account = await this.prisma.account.findUnique({
       where: { id: accountId },
       select: { phoneNumber: true },
@@ -180,7 +199,18 @@ export class KinshipCheckService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return checks.map((c) => this.toView(c, accountId));
+    const nameMap = await this.resolveNames(
+      checks.map((c) => this.counterpartyAccountId(c, accountId)),
+    );
+
+    const incoming: KinshipCheckView[] = [];
+    const outgoing: KinshipCheckView[] = [];
+    for (const c of checks) {
+      const cpId = this.counterpartyAccountId(c, accountId);
+      const view = this.toView(c, accountId, cpId ? nameMap.get(cpId) ?? null : null);
+      (view.direction === 'incoming' ? incoming : outgoing).push(view);
+    }
+    return { incoming, outgoing };
   }
 
   /**
@@ -232,7 +262,7 @@ export class KinshipCheckService {
         checkId: declined.id,
         consented: false,
       });
-      return this.toView(declined, responderAccountId);
+      return this.toViewWithName(declined, responderAccountId);
     }
 
     const consented = await this.prisma.kinshipCheck.update({
@@ -247,10 +277,41 @@ export class KinshipCheckService {
     // Both parties consent (requester implicitly) -> compute now.
     if (consented.requesterConsent && consented.targetConsent) {
       const computed = await this.compute(consented, responderAccountId);
-      return this.toView(computed, responderAccountId);
+      return this.toViewWithName(computed, responderAccountId);
     }
 
-    return this.toView(consented, responderAccountId);
+    return this.toViewWithName(consented, responderAccountId);
+  }
+
+  /**
+   * The requester withdraws a still-pending outgoing check. Only the requester
+   * may cancel, and only while it is awaiting the target's response — once
+   * declined, computed, expired or already cancelled it is immutable.
+   */
+  async cancel(
+    checkId: string,
+    requesterAccountId: string,
+  ): Promise<KinshipCheckView> {
+    const check = await this.prisma.kinshipCheck.findFirst({
+      where: { id: checkId, deletedAt: null },
+    });
+    if (!check) {
+      throw new NotFoundException('Kinship check not found.');
+    }
+    if (check.requesterAccountId !== requesterAccountId) {
+      throw new ForbiddenException('Only the requester can cancel this kinship check.');
+    }
+    if (check.status !== KinshipCheckStatus.PENDING_CONSENT) {
+      throw new BadRequestException('This kinship check can no longer be cancelled.');
+    }
+
+    const cancelled = await this.prisma.kinshipCheck.update({
+      where: { id: check.id },
+      data: { status: KinshipCheckStatus.CANCELLED },
+    });
+    await this.audit(requesterAccountId, cancelled.id, 'CANCEL', {});
+
+    return this.toViewWithName(cancelled, requesterAccountId);
   }
 
   // --- compute -------------------------------------------------------------
@@ -485,11 +546,56 @@ export class KinshipCheckService {
   }
 
   /**
+   * The account id of the OTHER party relative to the viewer: the target when
+   * the viewer is the requester, otherwise the requester. Null when the viewer
+   * is the requester and the target is an unresolved phone invite.
+   */
+  private counterpartyAccountId(
+    check: KinshipCheck,
+    viewerAccountId: string,
+  ): string | null {
+    return check.requesterAccountId === viewerAccountId
+      ? check.targetAccountId
+      : check.requesterAccountId;
+  }
+
+  /** Batch-resolve account ids to their display name (Account.fullName). */
+  private async resolveNames(
+    accountIds: ReadonlyArray<string | null>,
+  ): Promise<Map<string, string | null>> {
+    const ids = [...new Set(accountIds.filter((id): id is string => !!id))];
+    if (ids.length === 0) {
+      return new Map();
+    }
+    const accounts = await this.prisma.account.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, fullName: true },
+    });
+    return new Map(accounts.map((a) => [a.id, a.fullName ?? null]));
+  }
+
+  /** Build the privacy-safe view, resolving the single counterparty name. */
+  private async toViewWithName(
+    check: KinshipCheck,
+    viewerAccountId: string,
+  ): Promise<KinshipCheckView> {
+    const cpId = this.counterpartyAccountId(check, viewerAccountId);
+    const name = cpId ? (await this.resolveNames([cpId])).get(cpId) ?? null : null;
+    return this.toView(check, viewerAccountId, name);
+  }
+
+  /**
    * Reduce a KinshipCheck row to the privacy-safe view. The ONLY result fields
    * ever exposed are { related, degree, labelFr, labelEn }. Person ids, phone,
-   * and the path are never projected.
+   * and the path are never projected. `counterpartyName` is the other party's
+   * display name (already resolved by the caller) — surfaced solely for
+   * informed consent, never a phone or graph data.
    */
-  private toView(check: KinshipCheck, viewerAccountId: string): KinshipCheckView {
+  private toView(
+    check: KinshipCheck,
+    viewerAccountId: string,
+    counterpartyName: string | null,
+  ): KinshipCheckView {
     const direction: 'incoming' | 'outgoing' =
       check.requesterAccountId === viewerAccountId ? 'outgoing' : 'incoming';
 
@@ -507,8 +613,9 @@ export class KinshipCheckService {
       id: check.id,
       direction,
       status: check.status,
+      counterpartyName,
+      invitedByPhone: check.targetPhone !== null && check.targetAccountId === null,
       createdAt: check.createdAt,
-      computedAt: check.computedAt,
       expiresAt: check.expiresAt,
       result,
     };

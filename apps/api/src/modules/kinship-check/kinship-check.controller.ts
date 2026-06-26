@@ -12,23 +12,34 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { KinshipCheckService } from './kinship-check.service';
 import { InitiateCheckDto } from './dto/initiate-check.dto';
-import { RespondCheckDto } from './dto/respond-check.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentAccount } from '../../common/decorators/current-account.decorator';
 
 /**
  * "Sommes-nous parents ?" — consent-based, privacy-preserving kinship check.
  *
- * Every response is the privacy-safe view: lifecycle state plus, once computed,
- * ONLY { related, degree, labelFr, labelEn }. No persons, names, ancestors,
+ * Mounted at `/kinship-checks` (plural) to match the deployed web client.
+ *
+ * Every response is the privacy-safe view: lifecycle state, direction, the
+ * counterparty's display name (for informed consent only), and — once computed
+ * — ONLY { related, degree, labelFr, labelEn }. No persons, ancestors, graph
  * path or phone are ever returned.
  */
 @ApiTags('Kinship Check')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('kinship-check')
+@Controller('kinship-checks')
 export class KinshipCheckController {
   constructor(private readonly kinshipCheck: KinshipCheckService) {}
+
+  @Get()
+  @ApiOperation({
+    summary:
+      'My incoming and outgoing kinship checks ({ incoming, outgoing }; results aggregate-only)',
+  })
+  list(@CurrentAccount('id') accountId: string) {
+    return this.kinshipCheck.listMine(accountId);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -43,25 +54,40 @@ export class KinshipCheckController {
     return this.kinshipCheck.initiate(accountId, dto);
   }
 
-  @Get('mine')
-  @ApiOperation({
-    summary: 'List my incoming and outgoing kinship checks (results aggregate-only)',
-  })
-  listMine(@CurrentAccount('id') accountId: string) {
-    return this.kinshipCheck.listMine(accountId);
-  }
-
-  @Post(':id/respond')
+  @Post(':id/consent')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
-      'Consent to or decline a kinship check addressed to you. Dual consent triggers the computation.',
+      'Target consents to a check addressed to them. Dual consent triggers the computation.',
   })
-  respond(
+  consent(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: RespondCheckDto,
     @CurrentAccount('id') accountId: string,
   ) {
-    return this.kinshipCheck.respond(id, accountId, dto.consent);
+    return this.kinshipCheck.respond(id, accountId, true);
+  }
+
+  @Post(':id/decline')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Target declines a check addressed to them. Nothing is ever computed.',
+  })
+  decline(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAccount('id') accountId: string,
+  ) {
+    return this.kinshipCheck.respond(id, accountId, false);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Requester withdraws their own still-pending outgoing check.',
+  })
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAccount('id') accountId: string,
+  ) {
+    return this.kinshipCheck.cancel(id, accountId);
   }
 }

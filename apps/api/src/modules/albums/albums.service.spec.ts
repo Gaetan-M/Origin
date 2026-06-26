@@ -51,9 +51,10 @@ describe('AlbumsService', () => {
       findMany: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
+      count: jest.Mock;
     };
     claim: { findMany: jest.Mock };
-    person: { findFirst: jest.Mock };
+    person: { findFirst: jest.Mock; findMany: jest.Mock };
     media: { findFirst: jest.Mock };
     contribution: { create: jest.Mock };
     $transaction: jest.Mock;
@@ -74,9 +75,15 @@ describe('AlbumsService', () => {
         findMany: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
       },
       claim: { findMany: jest.fn().mockResolvedValue([]) },
-      person: { findFirst: jest.fn().mockResolvedValue({ id: SUBJECT }) },
+      person: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: SUBJECT, displayName: 'Subject Person' }),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       media: { findFirst: jest.fn().mockResolvedValue({ id: 'media-1' }) },
       contribution: { create: jest.fn().mockResolvedValue({}) },
       // Execute the callback with the same mock acting as the tx client.
@@ -104,7 +111,9 @@ describe('AlbumsService', () => {
 
       const result = await service.createAlbum(OWNER, { title: 'A life' });
 
-      expect(result).toBe(created);
+      expect(result.id).toBe(created.id);
+      expect(result.itemCount).toBe(0);
+      expect(result.subjectPersonName).toBe('Subject Person');
       expect(prisma.album.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -126,7 +135,13 @@ describe('AlbumsService', () => {
       prisma.albumItem.findFirst.mockResolvedValue({ position: 4 });
       prisma.albumItem.create.mockImplementation(
         ({ data }: { data: { position: number } }) =>
-          Promise.resolve({ id: 'item-1', mediaId: 'media-1', ...data }),
+          Promise.resolve({
+            id: 'item-1',
+            mediaId: 'media-1',
+            createdAt: new Date(),
+            takenAt: null,
+            ...data,
+          }),
       );
 
       await service.addItem('album-1', OWNER, { mediaId: 'media-1' });
@@ -143,7 +158,13 @@ describe('AlbumsService', () => {
       prisma.albumItem.findFirst.mockResolvedValue(null);
       prisma.albumItem.create.mockImplementation(
         ({ data }: { data: { position: number } }) =>
-          Promise.resolve({ id: 'item-1', mediaId: 'media-1', ...data }),
+          Promise.resolve({
+            id: 'item-1',
+            mediaId: 'media-1',
+            createdAt: new Date(),
+            takenAt: null,
+            ...data,
+          }),
       );
 
       await service.addItem('album-1', OWNER, { mediaId: 'media-1' });
@@ -269,12 +290,13 @@ describe('AlbumsService', () => {
         makeAlbum({ visibilityScope: VisibilityScope.PUBLIC }),
       );
       prisma.albumItem.findMany.mockResolvedValue([
-        { id: 'i0', position: 0 },
-        { id: 'i1', position: 1 },
+        { id: 'i0', position: 0, takenAt: null, createdAt: new Date() },
+        { id: 'i1', position: 1, takenAt: null, createdAt: new Date() },
       ]);
 
       const album = await service.getAlbum('album-1', STRANGER);
       expect(album.items.map((i) => i.id)).toEqual(['i0', 'i1']);
+      expect(album.itemCount).toBe(2);
       expect(prisma.albumItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
@@ -295,6 +317,126 @@ describe('AlbumsService', () => {
 
       const visible = await service.listAlbumsForPerson(SUBJECT, STRANGER);
       expect(visible.map((a) => a.id)).toEqual(['public']);
+    });
+
+    it('enriches albums with subject person name + item count', async () => {
+      prisma.album.findMany.mockResolvedValue([
+        makeAlbum({ id: 'public', visibilityScope: VisibilityScope.PUBLIC }),
+      ]);
+      prisma.person.findMany.mockResolvedValue([
+        { id: SUBJECT, displayName: 'Subject Person' },
+      ]);
+      prisma.albumItem.count.mockResolvedValue(3);
+
+      const visible = await service.listAlbumsForPerson(SUBJECT, STRANGER);
+      expect(visible[0].subjectPersonName).toBe('Subject Person');
+      expect(visible[0].itemCount).toBe(3);
+    });
+  });
+
+  describe('listMyAlbums', () => {
+    it('returns the owner own albums regardless of scope, enriched', async () => {
+      prisma.album.findMany.mockResolvedValue([
+        makeAlbum({ id: 'a1', visibilityScope: VisibilityScope.PRIVATE_SELF }),
+      ]);
+      prisma.albumItem.count.mockResolvedValue(2);
+
+      const mine = await service.listMyAlbums(OWNER);
+
+      expect(mine.map((a) => a.id)).toEqual(['a1']);
+      expect(mine[0].itemCount).toBe(2);
+      expect(prisma.album.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { ownerAccountId: OWNER, deletedAt: null },
+        }),
+      );
+    });
+  });
+
+  describe('updateItem', () => {
+    it('updates a timeline item (owner-only) and records a Contribution', async () => {
+      prisma.album.findFirst.mockResolvedValue(makeAlbum());
+      prisma.albumItem.findFirst.mockResolvedValue({
+        id: 'item-1',
+        albumId: 'album-1',
+      });
+      prisma.albumItem.update.mockResolvedValue({
+        id: 'item-1',
+        albumId: 'album-1',
+        mediaId: 'media-1',
+        caption: 'New caption',
+        takenAt: new Date('2001-05-04'),
+        takenAtText: null,
+        position: 0,
+        createdAt: new Date(),
+      });
+
+      const result = await service.updateItem('album-1', 'item-1', OWNER, {
+        caption: 'New caption',
+      });
+
+      expect(result.caption).toBe('New caption');
+      expect(result.takenAt).toBe('2001-05-04');
+      expect(prisma.contribution.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ action: 'update' }),
+        }),
+      );
+    });
+
+    it('rejects a non-owner', async () => {
+      prisma.album.findFirst.mockResolvedValue(makeAlbum());
+
+      await expect(
+        service.updateItem('album-1', 'item-1', STRANGER, { caption: 'x' }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('throws NotFound when the item is missing', async () => {
+      prisma.album.findFirst.mockResolvedValue(makeAlbum());
+      prisma.albumItem.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.updateItem('album-1', 'missing', OWNER, { caption: 'x' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('reorderItems', () => {
+    it('rewrites positions by index, ignoring unknown ids (owner-only)', async () => {
+      prisma.album.findFirst.mockResolvedValue(makeAlbum());
+      prisma.albumItem.findMany.mockResolvedValue([
+        { id: 'a' },
+        { id: 'b' },
+      ]);
+      prisma.albumItem.update.mockResolvedValue({});
+
+      await service.reorderItems('album-1', OWNER, {
+        orderedItemIds: ['b', 'a', 'unknown'],
+      });
+
+      expect(prisma.albumItem.update).toHaveBeenCalledWith({
+        where: { id: 'b' },
+        data: { position: 0 },
+      });
+      expect(prisma.albumItem.update).toHaveBeenCalledWith({
+        where: { id: 'a' },
+        data: { position: 1 },
+      });
+      expect(prisma.albumItem.update).toHaveBeenCalledTimes(2);
+      expect(prisma.contribution.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ action: 'reorder_items' }),
+        }),
+      );
+    });
+
+    it('rejects a non-owner', async () => {
+      prisma.album.findFirst.mockResolvedValue(makeAlbum());
+
+      await expect(
+        service.reorderItems('album-1', STRANGER, { orderedItemIds: ['a'] }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 

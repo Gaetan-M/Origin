@@ -22,6 +22,8 @@ import { AlbumsService } from './albums.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
 import { UpdateAlbumDto } from './dto/update-album.dto';
 import { AddAlbumItemDto } from './dto/add-album-item.dto';
+import { UpdateAlbumItemDto } from './dto/update-album-item.dto';
+import { ReorderAlbumItemsDto } from './dto/reorder-album-items.dto';
 import { SetAlbumVisibilityDto } from './dto/set-album-visibility.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentAccount } from '../../common/decorators/current-account.decorator';
@@ -50,7 +52,13 @@ export class AlbumsController {
     return this.albumsService.createAlbum(accountId, dto);
   }
 
-  @Get('person/:personId')
+  @Get('mine')
+  @ApiOperation({ summary: "List the current account's own albums" })
+  listMyAlbums(@CurrentAccount('id') accountId: string) {
+    return this.albumsService.listMyAlbums(accountId);
+  }
+
+  @Get('by-person/:personId')
   @ApiOperation({ summary: 'List visible albums about a person' })
   @ApiParam({ name: 'personId', format: 'uuid' })
   listAlbumsForPerson(
@@ -113,6 +121,31 @@ export class AlbumsController {
     @CurrentAccount('id') accountId: string,
   ) {
     return this.albumsService.addItem(id, accountId, dto);
+  }
+
+  @Post(':id/items/reorder')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Reorder the album timeline (owner-only)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  async reorderItems(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() dto: ReorderAlbumItemsDto,
+    @CurrentAccount('id') accountId: string,
+  ): Promise<void> {
+    await this.albumsService.reorderItems(id, accountId, dto);
+  }
+
+  @Patch(':id/items/:itemId')
+  @ApiOperation({ summary: 'Update a timeline item (owner-only)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: 'itemId', format: 'uuid' })
+  updateItem(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
+    @Body() dto: UpdateAlbumItemDto,
+    @CurrentAccount('id') accountId: string,
+  ) {
+    return this.albumsService.updateItem(id, itemId, accountId, dto);
   }
 
   @Delete(':id/items/:itemId')

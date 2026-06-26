@@ -23,13 +23,49 @@ import { EventPublisher } from '../../eventing/event-publisher';
 import { CreateAlbumDto } from './dto/create-album.dto';
 import { UpdateAlbumDto } from './dto/update-album.dto';
 import { AddAlbumItemDto } from './dto/add-album-item.dto';
+import { UpdateAlbumItemDto } from './dto/update-album-item.dto';
+import { ReorderAlbumItemsDto } from './dto/reorder-album-items.dto';
 import { SetAlbumVisibilityDto } from './dto/set-album-visibility.dto';
 
 const ALBUM_EVENT_VERSION = 1;
 
+/**
+ * Album as exposed to the web client. Enriches the persisted row with the
+ * resolved subject person display name and the live item count, and drops
+ * internal fields (deleted_at). Timestamps are ISO strings.
+ */
+export interface AlbumResponse {
+  id: string;
+  subjectPersonId: string | null;
+  subjectPersonName: string | null;
+  ownerAccountId: string;
+  title: string;
+  description: string | null;
+  kind: AlbumKind;
+  coverMediaId: string | null;
+  visibilityScope: VisibilityScope;
+  visibleMaxDegree: number | null;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A timeline item as exposed to the web client. */
+export interface AlbumItemResponse {
+  id: string;
+  albumId: string;
+  mediaId: string;
+  caption: string | null;
+  /** ISO date (yyyy-mm-dd) the media was captured, when known. */
+  takenAt: string | null;
+  takenAtText: string | null;
+  position: number;
+  createdAt: string;
+}
+
 /** Album with its ordered, non-deleted timeline items. */
-export interface AlbumWithItems extends Album {
-  items: AlbumItem[];
+export interface AlbumDetailResponse extends AlbumResponse {
+  items: AlbumItemResponse[];
 }
 
 type AlbumCreatedEvent = DomainEvent<
@@ -74,7 +110,7 @@ export class AlbumsService {
   async createAlbum(
     ownerAccountId: string,
     dto: CreateAlbumDto,
-  ): Promise<Album> {
+  ): Promise<AlbumResponse> {
     if (dto.subjectPersonId) {
       await this.assertPersonExists(dto.subjectPersonId);
     }
@@ -120,7 +156,10 @@ export class AlbumsService {
       },
     });
 
-    return album;
+    const subjectPersonName = await this.resolvePersonName(
+      album.subjectPersonId,
+    );
+    return this.toAlbumResponse(album, subjectPersonName, 0);
   }
 
   /**
@@ -134,7 +173,7 @@ export class AlbumsService {
     albumId: string,
     ownerAccountId: string,
     dto: AddAlbumItemDto,
-  ): Promise<AlbumItem> {
+  ): Promise<AlbumItemResponse> {
     await this.loadOwnedAlbum(albumId, ownerAccountId);
     await this.assertMediaExists(dto.mediaId);
 
@@ -179,7 +218,106 @@ export class AlbumsService {
       payload: { albumId, albumItemId: item.id, mediaId: item.mediaId },
     });
 
-    return item;
+    return this.toAlbumItemResponse(item);
+  }
+
+  /**
+   * Patch a timeline item's metadata. Owner-only. The referenced media file is
+   * immutable. Returns the updated item.
+   */
+  async updateItem(
+    albumId: string,
+    itemId: string,
+    ownerAccountId: string,
+    dto: UpdateAlbumItemDto,
+  ): Promise<AlbumItemResponse> {
+    await this.loadOwnedAlbum(albumId, ownerAccountId);
+    const item = await this.prisma.albumItem.findFirst({
+      where: { id: itemId, albumId, deletedAt: null },
+    });
+    if (!item) {
+      throw new NotFoundException('Album item not found / Élément introuvable');
+    }
+
+    const data: Prisma.AlbumItemUpdateInput = {};
+    const audit: Record<string, string | number | null> = {};
+    if (dto.caption !== undefined) {
+      data.caption = dto.caption;
+      audit.caption = dto.caption;
+    }
+    if (dto.takenAt !== undefined) {
+      data.takenAt = dto.takenAt ? new Date(dto.takenAt) : null;
+      audit.takenAt = dto.takenAt;
+    }
+    if (dto.takenAtText !== undefined) {
+      data.takenAtText = dto.takenAtText;
+      audit.takenAtText = dto.takenAtText;
+    }
+    if (dto.position !== undefined) {
+      data.position = dto.position;
+      audit.position = dto.position;
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.albumItem.update({ where: { id: itemId }, data });
+      await tx.album.update({
+        where: { id: albumId },
+        data: { updatedAt: new Date() },
+      });
+      await this.writeContribution(
+        tx,
+        ownerAccountId,
+        'album_item',
+        itemId,
+        'update',
+        { newValue: audit },
+      );
+      return next;
+    });
+
+    return this.toAlbumItemResponse(updated);
+  }
+
+  /**
+   * Rewrite the timeline order. Owner-only. Each provided item's `position`
+   * becomes its index in `orderedItemIds`; ids not belonging to the album are
+   * ignored.
+   */
+  async reorderItems(
+    albumId: string,
+    ownerAccountId: string,
+    dto: ReorderAlbumItemsDto,
+  ): Promise<void> {
+    await this.loadOwnedAlbum(albumId, ownerAccountId);
+
+    const existing = await this.prisma.albumItem.findMany({
+      where: { albumId, deletedAt: null },
+      select: { id: true },
+    });
+    const validIds = new Set(existing.map((i) => i.id));
+
+    await this.prisma.$transaction(async (tx) => {
+      let position = 0;
+      for (const id of dto.orderedItemIds) {
+        if (!validIds.has(id)) {
+          continue;
+        }
+        await tx.albumItem.update({ where: { id }, data: { position } });
+        position += 1;
+      }
+      await tx.album.update({
+        where: { id: albumId },
+        data: { updatedAt: new Date() },
+      });
+      await this.writeContribution(
+        tx,
+        ownerAccountId,
+        'album',
+        albumId,
+        'reorder_items',
+        { newValue: { orderedItemIds: dto.orderedItemIds } },
+      );
+    });
   }
 
   /**
@@ -193,7 +331,7 @@ export class AlbumsService {
   async getAlbum(
     albumId: string,
     requesterAccountId: string,
-  ): Promise<AlbumWithItems> {
+  ): Promise<AlbumDetailResponse> {
     const album = await this.prisma.album.findFirst({
       where: { id: albumId, deletedAt: null },
     });
@@ -212,7 +350,26 @@ export class AlbumsService {
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
     });
 
-    return { ...album, items };
+    const subjectPersonName = await this.resolvePersonName(
+      album.subjectPersonId,
+    );
+
+    return {
+      ...this.toAlbumResponse(album, subjectPersonName, items.length),
+      items: items.map((item) => this.toAlbumItemResponse(item)),
+    };
+  }
+
+  /**
+   * List the albums OWNED by the requesting account (their own albums),
+   * regardless of visibility scope, most-recent first.
+   */
+  async listMyAlbums(ownerAccountId: string): Promise<AlbumResponse[]> {
+    const albums = await this.prisma.album.findMany({
+      where: { ownerAccountId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    return this.enrichAlbums(albums);
   }
 
   /**
@@ -222,7 +379,7 @@ export class AlbumsService {
   async listAlbumsForPerson(
     personId: string,
     requesterAccountId: string,
-  ): Promise<Album[]> {
+  ): Promise<AlbumResponse[]> {
     const albums = await this.prisma.album.findMany({
       where: { subjectPersonId: personId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
@@ -234,7 +391,7 @@ export class AlbumsService {
         visible.push(album);
       }
     }
-    return visible;
+    return this.enrichAlbums(visible);
   }
 
   /**
@@ -244,7 +401,7 @@ export class AlbumsService {
     albumId: string,
     ownerAccountId: string,
     dto: UpdateAlbumDto,
-  ): Promise<Album> {
+  ): Promise<AlbumResponse> {
     await this.loadOwnedAlbum(albumId, ownerAccountId);
     if (dto.coverMediaId) {
       await this.assertMediaExists(dto.coverMediaId);
@@ -277,13 +434,15 @@ export class AlbumsService {
       audit.visibleMaxDegree = dto.visibleMaxDegree;
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.album.update({ where: { id: albumId }, data });
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.album.update({ where: { id: albumId }, data });
       await this.writeContribution(tx, ownerAccountId, 'album', albumId, 'update', {
         newValue: audit,
       });
-      return updated;
+      return next;
     });
+
+    return this.enrichAlbum(updated);
   }
 
   /**
@@ -294,11 +453,11 @@ export class AlbumsService {
     albumId: string,
     ownerAccountId: string,
     dto: SetAlbumVisibilityDto,
-  ): Promise<Album> {
+  ): Promise<AlbumResponse> {
     const existing = await this.loadOwnedAlbum(albumId, ownerAccountId);
 
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.album.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.album.update({
         where: { id: albumId },
         data: {
           visibilityScope: dto.visibilityScope,
@@ -318,12 +477,14 @@ export class AlbumsService {
         {
           fieldName: 'visibility_scope',
           oldValue: { visibilityScope: existing.visibilityScope },
-          newValue: { visibilityScope: updated.visibilityScope },
+          newValue: { visibilityScope: next.visibilityScope },
         },
       );
 
-      return updated;
+      return next;
     });
+
+    return this.enrichAlbum(updated);
   }
 
   /**
@@ -379,6 +540,119 @@ export class AlbumsService {
         {},
       );
     });
+  }
+
+  // --- response mapping ----------------------------------------------------
+
+  /**
+   * Map a persisted album row to the client response shape, enriching with the
+   * subject person's display name and live item count. When the caller already
+   * knows these (e.g. it just loaded the items), it can pass them to avoid
+   * extra queries; otherwise they are resolved on demand.
+   */
+  private toAlbumResponse(
+    album: Album,
+    subjectPersonName: string | null = null,
+    itemCount = 0,
+  ): AlbumResponse {
+    return {
+      id: album.id,
+      subjectPersonId: album.subjectPersonId,
+      subjectPersonName,
+      ownerAccountId: album.ownerAccountId,
+      title: album.title,
+      description: album.description,
+      kind: album.kind,
+      coverMediaId: album.coverMediaId,
+      visibilityScope: album.visibilityScope,
+      visibleMaxDegree: album.visibleMaxDegree,
+      itemCount,
+      createdAt: album.createdAt.toISOString(),
+      updatedAt: album.updatedAt.toISOString(),
+    };
+  }
+
+  private toAlbumItemResponse(item: AlbumItem): AlbumItemResponse {
+    return {
+      id: item.id,
+      albumId: item.albumId,
+      mediaId: item.mediaId,
+      caption: item.caption,
+      // The column is date-only; expose the calendar day (yyyy-mm-dd).
+      takenAt: item.takenAt ? item.takenAt.toISOString().slice(0, 10) : null,
+      takenAtText: item.takenAtText,
+      position: item.position,
+      createdAt: item.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * Enrich a list of albums with subject person names + item counts, batching
+   * the lookups to avoid N+1 queries on list endpoints.
+   */
+  private async enrichAlbums(albums: Album[]): Promise<AlbumResponse[]> {
+    if (albums.length === 0) {
+      return [];
+    }
+
+    const subjectIds = [
+      ...new Set(
+        albums
+          .map((a) => a.subjectPersonId)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+    const persons =
+      subjectIds.length > 0
+        ? await this.prisma.person.findMany({
+            where: { id: { in: subjectIds }, deletedAt: null },
+            select: { id: true, displayName: true },
+          })
+        : [];
+    const nameById = new Map(persons.map((p) => [p.id, p.displayName]));
+
+    const counts = await Promise.all(
+      albums.map((a) =>
+        this.prisma.albumItem.count({
+          where: { albumId: a.id, deletedAt: null },
+        }),
+      ),
+    );
+
+    return albums.map((album, i) =>
+      this.toAlbumResponse(
+        album,
+        album.subjectPersonId
+          ? (nameById.get(album.subjectPersonId) ?? null)
+          : null,
+        counts[i],
+      ),
+    );
+  }
+
+  /** Enrich a single album with its subject person name + live item count. */
+  private async enrichAlbum(album: Album): Promise<AlbumResponse> {
+    const [subjectPersonName, itemCount] = await Promise.all([
+      this.resolvePersonName(album.subjectPersonId),
+      this.prisma.albumItem.count({
+        where: { albumId: album.id, deletedAt: null },
+      }),
+    ]);
+    return this.toAlbumResponse(album, subjectPersonName, itemCount);
+  }
+
+  /** Resolve a single subject person's display name (null when absent). */
+  private async resolvePersonName(
+    personId: string | null,
+  ): Promise<string | null> {
+    if (!personId) {
+      return null;
+    }
+    const person = await this.prisma.person.findFirst({
+      where: { id: personId, deletedAt: null },
+      select: { displayName: true },
+    });
+    return person?.displayName ?? null;
   }
 
   // --- internals -----------------------------------------------------------
