@@ -51,6 +51,7 @@ const ALLOWED_PUBLIC_KEYS = [
   'region',
   'ethnicGroup',
   'mediaId',
+  'imageUrl',
   'authorDisplayName',
   'authorityVerified',
   'createdAt',

@@ -335,10 +335,21 @@ export class PublicFeedService {
       return null;
     }
     const cursorDate = new Date(cursor.createdAt);
+    // The cursor timestamp is millisecond-truncated (it round-trips through a JS
+    // Date / ISO string), while Postgres timestamptz keeps microseconds. A strict
+    // `createdAt = cursorDate` therefore never matches rows whose sub-millisecond
+    // part is non-zero — and when a whole batch is inserted with a single NOW()
+    // (e.g. the discovery seed) ALL rows share that timestamp, so the second page
+    // came back empty. Match the entire millisecond bucket
+    // [cursorDate, cursorDate + 1ms) and tie-break by id instead.
+    const cursorDateNext = new Date(cursorDate.getTime() + 1);
     const olderInSameBand: Prisma.CulturalContentWhereInput = {
       OR: [
         { createdAt: { lt: cursorDate } },
-        { createdAt: cursorDate, id: { lt: cursor.id } },
+        {
+          createdAt: { gte: cursorDate, lt: cursorDateNext },
+          id: { lt: cursor.id },
+        },
       ],
     };
 
