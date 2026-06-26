@@ -62,7 +62,7 @@ class RefreshInterceptor extends Interceptor {
     }
 
     try {
-      final newToken = await _tokenStorage.readAccessToken();
+      final newToken = await _tokenStorage.getAccessToken();
       final retryOptions = err.requestOptions.copyWith(
         extra: {
           ...err.requestOptions.extra,
@@ -102,7 +102,7 @@ class RefreshInterceptor extends Interceptor {
     _refreshing = completer;
 
     try {
-      final refreshToken = await _tokenStorage.readRefreshToken();
+      final refreshToken = await _tokenStorage.getRefreshToken();
       if (refreshToken == null || refreshToken.isEmpty) {
         completer.complete(false);
         return false;
@@ -144,8 +144,8 @@ class RefreshInterceptor extends Interceptor {
       }
 
       await _tokenStorage.saveTokens(
-        accessToken: newAccess,
-        refreshToken: newRefresh ?? refreshToken,
+        access: newAccess,
+        refresh: newRefresh ?? refreshToken,
       );
 
       completer.complete(true);

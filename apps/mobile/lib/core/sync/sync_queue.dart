@@ -164,6 +164,8 @@ class SyncQueue {
       case SyncEntityType.unionPartner:
       case SyncEntityType.notificationRead:
       case SyncEntityType.accountSettings:
+      case SyncEntityType.feedReaction:
+      case SyncEntityType.feedComment:
         // For these we don't currently rewrite ids — the local row is dropped
         // after success or never had a temporary id.
         break;
@@ -183,6 +185,8 @@ class SyncQueue {
       case SyncEntityType.unionPartner:
       case SyncEntityType.notificationRead:
       case SyncEntityType.accountSettings:
+      case SyncEntityType.feedReaction:
+      case SyncEntityType.feedComment:
         break;
     }
   }

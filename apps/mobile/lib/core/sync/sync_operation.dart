@@ -18,6 +18,8 @@ enum SyncEntityType {
   identityDocument,
   notificationRead,
   accountSettings,
+  feedReaction,
+  feedComment,
 }
 
 extension SyncEntityTypeX on SyncEntityType {
@@ -30,6 +32,8 @@ extension SyncEntityTypeX on SyncEntityType {
         SyncEntityType.identityDocument => 'identity_document',
         SyncEntityType.notificationRead => 'notification_read',
         SyncEntityType.accountSettings => 'account_settings',
+        SyncEntityType.feedReaction => 'feed_reaction',
+        SyncEntityType.feedComment => 'feed_comment',
       };
 
   static SyncEntityType fromWire(String value) {

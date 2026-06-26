@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:origin_mobile/core/storage/app_database.dart';
+import 'package:origin_mobile/core/storage/app_database.dart' as db;
 import 'package:origin_mobile/core/storage/app_database_provider.dart';
 import 'package:origin_mobile/data/models/family_tree.dart';
 import 'package:origin_mobile/data/models/person.dart';
@@ -12,7 +12,7 @@ import 'package:origin_mobile/data/models/person.dart';
 class PersonsRepository {
   PersonsRepository(this._db);
 
-  final AppDatabase _db;
+  final db.AppDatabase _db;
 
   Future<Person?> findById(String id) async {
     try {
@@ -67,7 +67,7 @@ class PersonsRepository {
     }
   }
 
-  Person _toPerson(PersonsData row) {
+  Person _toPerson(db.Person row) {
     return Person(
       id: row.id,
       displayName: row.displayName,
@@ -87,9 +87,9 @@ class PersonsRepository {
     );
   }
 
-  PersonsCompanion _personToCompanion(Person p) {
+  db.PersonsCompanion _personToCompanion(Person p) {
     final now = DateTime.now();
-    return PersonsCompanion.insert(
+    return db.PersonsCompanion.insert(
       id: p.id,
       displayName: p.displayName,
       normalizedName: p.normalizedName ?? p.displayName.toLowerCase(),

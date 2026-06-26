@@ -85,12 +85,13 @@ final GlobalKey<NavigatorState> _shellNavigatorKey =
 /// receive an [AsyncValue] which we collapse to a phase below.
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
+  final authState = authAsync.valueOrNull ?? const AuthLoading();
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: RoutePaths.splash,
     debugLogDiagnostics: false,
-    redirect: (context, state) => _redirect(authAsync, state),
+    redirect: (context, state) => _redirect(authState, state),
     errorBuilder: (context, state) => const _NotFoundScreen(),
     routes: <RouteBase>[
       GoRoute(

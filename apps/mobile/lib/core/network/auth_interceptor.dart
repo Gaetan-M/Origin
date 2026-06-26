@@ -24,7 +24,7 @@ class AuthInterceptor extends Interceptor {
   ) async {
     final skip = options.extra[skipAuthExtraKey] == true;
     if (!skip) {
-      final token = await _tokenStorage.readAccessToken();
+      final token = await _tokenStorage.getAccessToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }

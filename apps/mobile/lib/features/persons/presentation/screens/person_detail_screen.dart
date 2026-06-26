@@ -94,7 +94,7 @@ class PersonDetailScreen extends ConsumerWidget {
                   if (person.lifeStatus != LifeStatus.deceased)
                     OriginButton.terracotta(
                       label: 'Cette personne nous a quittés',
-                      icon: Icons.candle_outlined,
+                      icon: Icons.local_fire_department_outlined,
                       onPressed: () {},
                     ),
                 ],

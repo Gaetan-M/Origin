@@ -86,8 +86,8 @@ class _AuthOtpScreenState extends ConsumerState<AuthOtpScreen> {
       // onboarding to /auth/name. Returning user → /home/tree.
       final auth = ref.read(authStateProvider).valueOrNull;
       final account = auth is Authenticated ? auth.account : null;
-      final hasProfile = account?.displayName != null &&
-          account!.displayName!.trim().isNotEmpty;
+      final hasProfile = account?.fullName != null &&
+          account!.fullName!.trim().isNotEmpty;
       context.go(hasProfile ? RoutePaths.homeTree : RoutePaths.authName);
     } catch (_) {
       if (!mounted) return;

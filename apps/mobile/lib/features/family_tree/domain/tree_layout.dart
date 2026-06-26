@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show Offset;
 
 import 'package:flutter/foundation.dart';
 import 'package:origin_mobile/features/family_tree/domain/tree_data.dart';

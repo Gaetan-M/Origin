@@ -298,14 +298,10 @@ class PersonFormDraft {
 /// Notifier driving the new-person / edit-person draft.
 ///
 /// Use `personFormProvider(personId)` (family) — pass `null` for "create".
-class PersonFormNotifier extends Notifier<PersonFormDraft> {
-  PersonFormNotifier(this._personId);
-
-  final String? _personId;
-
+class PersonFormNotifier extends FamilyNotifier<PersonFormDraft, String?> {
   @override
-  PersonFormDraft build() {
-    return PersonFormDraft.empty(id: _personId);
+  PersonFormDraft build(String? arg) {
+    return PersonFormDraft.empty(id: arg);
   }
 
   void hydrate(PersonFormDraft draft) {
@@ -313,7 +309,7 @@ class PersonFormNotifier extends Notifier<PersonFormDraft> {
   }
 
   void reset() {
-    state = PersonFormDraft.empty(id: _personId);
+    state = PersonFormDraft.empty(id: arg);
   }
 
   void setDisplayName(String value) =>

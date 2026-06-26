@@ -18,7 +18,8 @@ import 'package:origin_mobile/data/models/account.dart';
 import 'package:origin_mobile/data/models/auth_tokens.dart';
 import 'package:origin_mobile/data/models/otp_channel.dart';
 import 'package:origin_mobile/core/storage/secure_storage.dart';
-import 'package:origin_mobile/core/storage/app_database.dart';
+import 'package:origin_mobile/core/storage/app_database.dart' show AppDatabase;
+import 'package:origin_mobile/core/storage/app_database_provider.dart';
 import 'package:origin_mobile/core/storage/kv_store.dart';
 
 /// Sealed authentication state surfaced to the rest of the app.

@@ -16,7 +16,7 @@ class LoggingInterceptor extends Interceptor {
                 methodCount: 0,
                 colors: false,
                 printEmojis: false,
-                dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+                printTime: true,
               ),
             );
 

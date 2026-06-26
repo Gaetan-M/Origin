@@ -29,8 +29,8 @@ class OriginApp extends ConsumerWidget {
     return MaterialApp.router(
       title: Env.appName,
       debugShowCheckedModeBanner: false,
-      theme: lightTheme,
-      darkTheme: darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
       routerConfig: router,
       locale: locale ?? const Locale('fr'),

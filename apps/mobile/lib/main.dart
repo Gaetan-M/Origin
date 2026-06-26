@@ -18,7 +18,7 @@ final Logger appLogger = Logger(
     errorMethodCount: 8,
     lineLength: 100,
     printEmojis: false,
-    dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+    printTime: true,
   ),
 );
 

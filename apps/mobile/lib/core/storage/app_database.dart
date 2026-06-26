@@ -23,6 +23,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
+import 'package:origin_mobile/features/family_feed/data/family_feed_tables.dart';
+
 part 'app_database.g.dart';
 
 // ============================================================================
@@ -350,6 +352,8 @@ class KvStore extends Table {
     MediaLocal,
     SyncQueue,
     KvStore,
+    FeedPostsCache,
+    FeedCommentsCache,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -359,12 +363,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forExecutor(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+        },
+        onUpgrade: (m, from, to) async {
+          // v2: offline family-feed cache tables (Phase 1).
+          if (from < 2) {
+            await m.createTable(feedPostsCache);
+            await m.createTable(feedCommentsCache);
+          }
         },
         beforeOpen: (details) async {
           // Enable foreign keys (off by default in SQLite).
@@ -376,6 +387,8 @@ class AppDatabase extends _$AppDatabase {
   /// behind. Schema metadata and the database file itself are preserved.
   Future<void> drainAll() async {
     await transaction(() async {
+      await delete(feedCommentsCache).go();
+      await delete(feedPostsCache).go();
       await delete(syncQueue).go();
       await delete(notificationsLocal).go();
       await delete(mediaLocal).go();
