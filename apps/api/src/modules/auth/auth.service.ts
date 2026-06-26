@@ -48,6 +48,17 @@ export class AuthService {
     ipAddress?: string,
     deviceId?: string,
   ): Promise<{ message: string }> {
+    // Master admin number: never rate-limited and no SMS sent. The verify step
+    // bypasses with the fixed master code, so there's nothing to generate or
+    // send here — and the owner can never be locked out of their own app by the
+    // anti-spam rate limit.
+    if (this.isMasterOtpPhone(phoneNumber)) {
+      this.logger.log(
+        `Master OTP request for ${phoneNumber.substring(0, 7)}**** (no-op)`,
+      );
+      return { message: 'OTP sent successfully' };
+    }
+
     await this.checkOtpRateLimit(phoneNumber, ipAddress);
 
     const code = this.generateOtpCode();
@@ -240,17 +251,21 @@ export class AuthService {
    * the built-in defaults. Setting either env var to an empty string disables
    * the bypass.
    */
-  private isMasterOtpBypass(phoneNumber: string, code: string): boolean {
+  /** True for the master admin phone (code-independent), used to skip rate limits. */
+  private isMasterOtpPhone(phoneNumber: string): boolean {
     const masterPhone =
       this.configService.get<string>('MASTER_OTP_PHONE') ??
       DEFAULT_MASTER_OTP_PHONE;
+    return masterPhone.length > 0 && phoneNumber === masterPhone;
+  }
+
+  private isMasterOtpBypass(phoneNumber: string, code: string): boolean {
     const masterCode =
       this.configService.get<string>('MASTER_OTP_CODE') ??
       DEFAULT_MASTER_OTP_CODE;
     return (
-      masterPhone.length > 0 &&
+      this.isMasterOtpPhone(phoneNumber) &&
       masterCode.length > 0 &&
-      phoneNumber === masterPhone &&
       code === masterCode
     );
   }
