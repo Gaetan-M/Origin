@@ -1029,3 +1029,111 @@ model KinshipCheck {
   @@index([targetPhone], map: "idx_kinship_checks_target_phone")
   @@map("kinship_checks")
 }
+
+// ============================================
+// PHASE 4 — LIVING MEMORY (the emotional moat)
+// Additive models for: ALBUMS (a person's life curated over time), and
+// MEMORIAL TRIBUTES (candles / messages / photos / videos honoring the
+// DECEASED). Oral history REUSES the existing Source model as-is
+// (media_file_id + audio_transcript + visibility_scope) — no new column is
+// added there.
+//
+// Cross-aggregate references (Account / Person / Media) are kept as plain
+// scalar UUID columns here; the real FOREIGN KEY constraints are declared in
+// the hand-written migration, keeping the change additive on the existing
+// Account / Person / Media models (no back-relation fields required on them).
+// The relation strictly between the two new Album models (Album <-> AlbumItem)
+// is expressed as a full Prisma relation.
+//
+// Visibility: Albums default PRIVATE_SELF (opt-in family/public); Memorial
+// tributes default FAMILY. Both respect the VisibilityScope / GraphDegree
+// model, write a Contribution audit row on mutation (enforced in services),
+// and are soft-deleted (deleted_at). Memorial tributes are only permitted on
+// a Person whose life_status = DECEASED (enforced in the service layer).
+// ============================================
+
+enum AlbumKind {
+  PERSONAL
+  FAMILY
+  EVENT
+
+  @@map("album_kind")
+}
+
+enum MemorialTributeKind {
+  CANDLE
+  MESSAGE
+  PHOTO
+  VIDEO
+
+  @@map("memorial_tribute_kind")
+}
+
+// An album documenting a person's life over time (e.g. a parent curating a
+// child from newborn to adult). subject_person_id is the person the album is
+// ABOUT (nullable — an EVENT/FAMILY album may have no single subject) and is
+// the OWNER personId used by VisibilityGuard/GraphDegreeService for FAMILY
+// scope. owner_account_id is the curator. cover_media_id is an optional
+// Media reference for the album cover.
+model Album {
+  id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  subjectPersonId  String?         @map("subject_person_id") @db.Uuid
+  ownerAccountId   String          @map("owner_account_id") @db.Uuid
+  title            String          @db.VarChar(200)
+  description      String?
+  kind             AlbumKind       @default(PERSONAL)
+  coverMediaId     String?         @map("cover_media_id") @db.Uuid
+  visibilityScope  VisibilityScope @default(PRIVATE_SELF) @map("visibility_scope")
+  visibleMaxDegree Int?            @map("visible_max_degree")
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime?       @map("deleted_at") @db.Timestamptz()
+
+  items AlbumItem[]
+
+  @@index([subjectPersonId], map: "idx_albums_subject_person")
+  @@index([ownerAccountId], map: "idx_albums_owner_account")
+  @@index([visibilityScope], map: "idx_albums_visibility")
+  @@map("albums")
+}
+
+// A single entry in an album, referencing one Media item with an optional
+// caption, capture date (taken_at, plus taken_at_text for fuzzy/historical
+// dates) and an explicit ordering position within the album.
+model AlbumItem {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  albumId     String    @map("album_id") @db.Uuid
+  mediaId     String    @map("media_id") @db.Uuid
+  caption     String?   @db.VarChar(500)
+  takenAt     DateTime? @map("taken_at") @db.Date
+  takenAtText String?   @map("taken_at_text") @db.VarChar(100)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@index([albumId, position], map: "idx_album_items_album_position")
+  @@map("album_items")
+}
+
+// A tribute left on a DECEASED person to honor an ancestor: a lit candle, a
+// written memory, or a photo/video. person_id is the OWNER personId used by
+// VisibilityGuard/GraphDegreeService. The service MUST verify
+// Person.life_status = DECEASED before creating a tribute (blocked on ALIVE).
+model MemorialTribute {
+  id               String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  personId         String              @map("person_id") @db.Uuid
+  authorAccountId  String              @map("author_account_id") @db.Uuid
+  kind             MemorialTributeKind
+  message          String?
+  mediaId          String?             @map("media_id") @db.Uuid
+  visibilityScope  VisibilityScope     @default(FAMILY) @map("visibility_scope")
+  visibleMaxDegree Int?                @map("visible_max_degree")
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt        DateTime?           @map("deleted_at") @db.Timestamptz()
+
+  @@index([personId, createdAt(sort: Desc)], map: "idx_memorial_tributes_person_created")
+  @@index([authorAccountId], map: "idx_memorial_tributes_author")
+  @@map("memorial_tributes")
+}
