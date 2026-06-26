@@ -19,9 +19,11 @@ import {
   User,
   Menu,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT } from '@/i18n';
+import { useIsModerator } from '@/lib/hooks/use-moderation';
 
 // The FULL navigation, mirroring the desktop sidebar. The bottom tab bar only
 // holds a handful of primary destinations, so on mobile this drawer is the way
@@ -51,6 +53,15 @@ export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const t = useT();
+  const isModerator = useIsModerator();
+
+  // Moderation is role-gated: only MODERATOR+ accounts see the entry.
+  const navItems = isModerator
+    ? [
+        ...NAV_KEYS,
+        { href: '/moderation', icon: ShieldCheck, key: 'nav.moderation' },
+      ]
+    : NAV_KEYS;
 
   return (
     <div className="lg:hidden">
@@ -86,7 +97,7 @@ export function MobileMenu() {
               </button>
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-              {NAV_KEYS.map((item) => {
+              {navItems.map((item) => {
                 const isActive = pathname.startsWith(item.href);
                 return (
                   <Link

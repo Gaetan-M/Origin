@@ -108,6 +108,23 @@ export function getMediaFileUrl(mediaId: string): string {
   return `${base}/media/${mediaId}/file`;
 }
 
+/**
+ * Resolve a media reference to an absolute, browser-loadable URL.
+ *
+ * Accepts either:
+ *  - an already-absolute URL (returned untouched),
+ *  - a path relative to the API host (e.g. "/media/<id>/file"), or
+ *  - a bare media id (resolved to its public file endpoint).
+ *
+ * Never hardcodes the host — it reuses NEXT_PUBLIC_API_URL like getMediaFileUrl.
+ */
+export function mediaAbsoluteUrl(relativeOrId: string): string {
+  if (/^https?:\/\//i.test(relativeOrId)) return relativeOrId;
+  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+  if (relativeOrId.startsWith('/')) return `${base}${relativeOrId}`;
+  return `${base}/media/${relativeOrId}/file`;
+}
+
 export async function getMedia(id: string): Promise<MediaInfo> {
   const { data } = await apiClient<MediaInfo>(`/media/${id}`);
   return data;

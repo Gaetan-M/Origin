@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Newspaper, Compass, TreePine, Users, HeartHandshake, Images, Radio, GraduationCap, MapPin, Bell, User, Link2 } from 'lucide-react';
+import { Home, Newspaper, Compass, TreePine, Users, HeartHandshake, Images, Radio, GraduationCap, MapPin, Bell, User, Link2, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
 import { useT } from '@/i18n';
+import { useIsModerator } from '@/lib/hooks/use-moderation';
 import { OriginLogo } from '@/components/branding/origin-decor';
 
 // Six top-level destinations matching the redesign brief: Accueil · L'arbre ·
@@ -31,6 +32,15 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen } = useUiStore();
   const t = useT();
+  const isModerator = useIsModerator();
+
+  // Moderation is role-gated: only MODERATOR+ accounts see the entry.
+  const navItems = isModerator
+    ? [
+        ...NAV_KEYS,
+        { href: '/moderation', icon: ShieldCheck, key: 'nav.moderation' },
+      ]
+    : NAV_KEYS;
 
   return (
     <aside
@@ -51,7 +61,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex flex-col gap-1 p-3">
-        {NAV_KEYS.map((item) => {
+        {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link

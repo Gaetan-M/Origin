@@ -58,6 +58,7 @@
     "connect": "Connect",
     "notifications": "Notifications",
     "invitations": "Invitations",
+    "moderation": "Moderation",
     "profile": "Profile"
   },
   "dashboard": {
