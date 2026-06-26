@@ -105,7 +105,15 @@ export class MediaController {
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
-    const { stream, mimeType, size } = await this.mediaService.openFileStream(id);
+    const result = await this.mediaService.openFileStream(id);
+
+    // Supabase-stored media: redirect to the public CDN URL.
+    if ('redirectUrl' in result) {
+      res.redirect(302, result.redirectUrl);
+      return;
+    }
+
+    const { stream, mimeType, size } = result;
     if (mimeType) res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Length', size.toString());
     res.setHeader('Cache-Control', 'public, max-age=300');

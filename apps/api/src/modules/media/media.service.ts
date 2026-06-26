@@ -13,6 +13,7 @@ import { mkdir, writeFile, stat } from 'fs/promises';
 import { dirname, join, resolve } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { S3Service } from './s3.service';
+import { SupabaseStorageService } from './supabase-storage.service';
 import { RequestUploadUrlDto, MediaPurpose } from './dto/upload-media.dto';
 
 @Injectable()
@@ -25,6 +26,7 @@ export class MediaService {
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly configService: ConfigService,
+    private readonly supabaseStorage: SupabaseStorageService,
   ) {
     this.bucketPhotos = this.configService.get<string>(
       's3.bucketPhotos',
@@ -120,17 +122,24 @@ export class MediaService {
     }
 
     const mediaId = randomUUID();
-    const bucket = this.determineBucket(purpose);
     const fileType = this.determineFileType(purpose);
     const extension = this.extractExtension(file.originalname);
     const s3Key = this.generateS3Key(purpose, mediaId, extension);
 
-    // Write bytes to the local storage root. In production we will swap this
-    // for an S3 PutObject, but the on-disk layout mirrors the s3Key so the
-    // migration path is straightforward.
-    const diskPath = join(this.getStorageRoot(), s3Key);
-    await mkdir(dirname(diskPath), { recursive: true });
-    await writeFile(diskPath, file.buffer);
+    // Persist the bytes. Prefer Supabase Storage (durable object storage) when
+    // configured; otherwise fall back to the local disk (dev / unconfigured).
+    // The chosen bucket name is stored on the Media row so the serve path knows
+    // where to read from. The on-disk layout mirrors s3Key either way.
+    let bucket: string;
+    if (this.supabaseStorage.isConfigured()) {
+      bucket = this.supabaseStorage.bucket;
+      await this.supabaseStorage.upload(s3Key, file.buffer, file.mimetype);
+    } else {
+      bucket = this.determineBucket(purpose);
+      const diskPath = join(this.getStorageRoot(), s3Key);
+      await mkdir(dirname(diskPath), { recursive: true });
+      await writeFile(diskPath, file.buffer);
+    }
 
     let attachedPersonId: string | null = null;
     if (personId) {
@@ -340,12 +349,24 @@ export class MediaService {
    */
   async openFileStream(
     id: string,
-  ): Promise<{ stream: ReadStream; mimeType: string | null; size: number }> {
+  ): Promise<
+    | { redirectUrl: string }
+    | { stream: ReadStream; mimeType: string | null; size: number }
+  > {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media || media.deletedAt) {
       throw new NotFoundException('Media not found');
     }
 
+    // Stored in Supabase Storage -> redirect the caller to the public CDN URL.
+    if (
+      this.supabaseStorage.isConfigured() &&
+      media.s3Bucket === this.supabaseStorage.bucket
+    ) {
+      return { redirectUrl: this.supabaseStorage.getPublicUrl(media.s3Key) };
+    }
+
+    // Otherwise stream from local disk.
     const diskPath = join(this.getStorageRoot(), media.s3Key);
     const info = await stat(diskPath).catch(() => null);
     if (!info) {
