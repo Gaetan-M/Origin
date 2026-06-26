@@ -249,8 +249,7 @@ data(name, description, region, category, lat, lng, image_url) AS (
   ('Grande Mosquee de Maroua', 'Au coeur de la cite sahelienne, la grande mosquee de Maroua rythme la vie spirituelle de la capitale du Diamare.', 'Extreme-Nord', 'RELIGIOUS', 10.591, 14.32, NULL),
   ('Cathedrale Sainte-Anne-et-Saint-Joachim d''Ebolowa', 'Edifice majeur du Sud, la cathedrale d''Ebolowa rassemble les fideles au coeur du pays Bulu.', 'Sud', 'RELIGIOUS', 2.915, 11.154, 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Cath%C3%A9drale_d%27Abang.jpg/960px-Cath%C3%A9drale_d%27Abang.jpg'),
   ('Villages Baka de Lomie', 'A la lisiere de la grande foret, les communautes Baka partagent chants polyphoniques, danses et savoirs de la jungle.', 'Est', 'CULTURE', 3.15, 13.62, 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Lomi%C3%A9_crossroads.jpg/960px-Lomi%C3%A9_crossroads.jpg'),
-  ('Cathedrale du Sacre-Coeur de Bertoua', 'Principal sanctuaire de l''Est forestier, la cathedrale de Bertoua veille sur la capitale regionale.', 'Est', 'RELIGIOUS', 4.577, 13.684, NULL),
-  ('id', 'name', 'description', 'region', NULL, NULL, 'longitude')
+  ('Cathedrale du Sacre-Coeur de Bertoua', 'Principal sanctuaire de l''Est forestier, la cathedrale de Bertoua veille sur la capitale regionale.', 'Est', 'RELIGIOUS', 4.577, 13.684, NULL)
 )
 INSERT INTO tourism_places
   (id, name, description, region, category, latitude, longitude, image_url, source, source_ref,
