@@ -121,12 +121,13 @@ export function PlaceDetail({ id }: { id: string | null }) {
         {t('backToList')}
       </Link>
 
-      {/* Hero */}
+      {/* Hero — real photo when we have one (Wikimedia/curated or attached
+          media), else a clean on-brand placeholder (never a random image). */}
       <div className="overflow-hidden rounded-2xl border border-sand bg-white shadow-card">
-        {place.mediaUrl ? (
+        {place.imageUrl ?? place.mediaUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={place.mediaUrl}
+            src={(place.imageUrl ?? place.mediaUrl) as string}
             alt={place.name}
             className="h-52 w-full object-cover sm:h-64"
           />
