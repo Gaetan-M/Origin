@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { MobileMenu } from '@/components/layout/mobile-menu';
 import { useUiStore } from '@/stores/ui-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useUnreadCount } from '@/lib/hooks/use-notifications';
@@ -32,10 +33,12 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 lg:px-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* Desktop: toggle the sidebar. Mobile: open the full-features drawer. */}
         <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden lg:flex">
           <Menu className="h-5 w-5" />
         </Button>
+        <MobileMenu />
         <Link
           href="/dashboard"
           className="flex items-center gap-2 lg:hidden transition-opacity hover:opacity-80"
