@@ -43,6 +43,7 @@
   },
   "nav": {
     "dashboard": "Accueil",
+    "feed": "Fil familial",
     "myPersons": "Personnes",
     "myTree": "L'arbre",
     "search": "Chercher",

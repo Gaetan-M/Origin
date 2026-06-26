@@ -43,6 +43,7 @@
   },
   "nav": {
     "dashboard": "Home",
+    "feed": "Family feed",
     "myPersons": "People",
     "myTree": "The tree",
     "search": "Search",

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, TreePine, Users, Bell, User, Link2 } from 'lucide-react';
+import { Home, Newspaper, TreePine, Users, Bell, User, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
 import { useT } from '@/i18n';
@@ -13,6 +13,7 @@ import { OriginLogo } from '@/components/branding/origin-decor';
 // Sonde de parenté live as tabs inside /connect, not as separate nav items.
 const NAV_KEYS = [
   { href: '/dashboard', icon: Home, key: 'nav.dashboard' },
+  { href: '/feed', icon: Newspaper, key: 'nav.feed' },
   { href: '/tree', icon: TreePine, key: 'nav.myTree' },
   { href: '/persons', icon: Users, key: 'nav.myPersons' },
   { href: '/connect', icon: Link2, key: 'nav.connect' },
