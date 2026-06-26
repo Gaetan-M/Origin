@@ -2,23 +2,22 @@ import { apiClient } from './client';
 
 /**
  * Generic media upload helper for Phase 4 "Living Memory" surfaces (albums,
- * memorial tributes). It REUSES the existing media module's presigned-upload
- * flow — it does NOT re-implement storage. The three steps are:
- *   1. ask the API for a presigned upload URL + a Media row id
- *   2. PUT the raw bytes straight to object storage
- *   3. confirm the upload so the Media row is marked usable
- * The returned id is the media_id that album items / tributes reference.
+ * memorial tributes) and the public engagement layer (contributed photos).
+ *
+ * It uses the DIRECT multipart upload endpoint (`POST /media/upload`), the same
+ * path as profile-photo upload — the API persists the bytes server-side and
+ * returns the Media row id. We deliberately do NOT use the presigned-URL +
+ * S3 PUT flow: object storage is not provisioned in this deployment, so that
+ * flow fails (the browser PUT has no reachable bucket). The direct path works
+ * everywhere the API runs.
+ *
+ * The returned id is the media_id that album items / tributes / contributed
+ * photos reference.
  */
 
-interface UploadUrlResponse {
-  uploadUrl: string;
-  mediaId: string;
-  s3Key: string;
-}
-
-interface ConfirmUploadResponse {
+interface DirectUploadResponse {
   id: string;
-  confirmed: boolean;
+  url: string;
 }
 
 /**
@@ -34,23 +33,14 @@ export async function uploadMediaFile(
   file: File,
   purpose: LivingMemoryMediaPurpose,
 ): Promise<string> {
-  const { data: ticket } = await apiClient<UploadUrlResponse>('/media/upload-url', {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', purpose);
+
+  const { data } = await apiClient<DirectUploadResponse>('/media/upload', {
     method: 'POST',
-    body: JSON.stringify({ fileName: file.name, mimeType: file.type, purpose }),
+    body: formData,
   });
 
-  const putRes = await fetch(ticket.uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: file,
-  });
-  if (!putRes.ok) {
-    throw new Error('media-upload-failed');
-  }
-
-  await apiClient<ConfirmUploadResponse>(`/media/${ticket.mediaId}/confirm`, {
-    method: 'POST',
-  });
-
-  return ticket.mediaId;
+  return data.id;
 }
