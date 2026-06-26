@@ -54,6 +54,39 @@ export type LearningLessonPublishedEvent = DomainEvent<
   LearningLessonPublishedPayload
 >;
 
+/** Public-safe enriched lesson shape returned to clients (no private data). */
+export interface EnrichedLesson {
+  id: string;
+  title: string;
+  description: string | null;
+  content: string | null;
+  languageCode: string | null;
+  level: LearningLevel;
+  ethnicGroup: string | null;
+  isTicketed: boolean;
+  liveSessionId: string | null;
+  isFromVerifiedAuthority: boolean;
+  visibilityScope: VisibilityScope;
+  moderationStatus: ModerationStatus;
+  position: number;
+  createdAt: Date;
+  author: { accountId: string; displayName: string };
+  authority: {
+    id: string;
+    displayName: string;
+    region: string | null;
+    ethnicGroup: string | null;
+    verified: boolean;
+  } | null;
+  mediaUrl: string | null;
+  enrollment: LessonEnrollment | null;
+}
+
+export interface LearningLessonPage {
+  items: EnrichedLesson[];
+  nextCursor: string | null;
+}
+
 /**
  * Structured language/culture mini-lessons + learner enrollment & progress.
  *
@@ -149,8 +182,11 @@ export class LearningService {
    * List APPROVED + PUBLIC lessons for the public catalogue, optionally filtered
    * by taught language and/or level. Ordered by curriculum position then recency.
    */
-  async listLessons(filter: ListLessonsFilter = {}): Promise<LearningLesson[]> {
-    return this.prisma.learningLesson.findMany({
+  async listLessons(
+    filter: ListLessonsFilter = {},
+    requesterAccountId: string | null = null,
+  ): Promise<LearningLessonPage> {
+    const lessons = await this.prisma.learningLesson.findMany({
       where: {
         deletedAt: null,
         moderationStatus: ModerationStatus.APPROVED,
@@ -159,6 +195,101 @@ export class LearningService {
         ...(filter.level ? { level: filter.level } : {}),
       },
       orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+    });
+    const items = await this.enrichLessons(lessons, requesterAccountId);
+    return { items, nextCursor: null };
+  }
+
+  /**
+   * Resolves public-safe display fields (author name, authority, media URL,
+   * caller's enrollment) for a batch of lessons. Never exposes private data.
+   */
+  private async enrichLessons(
+    lessons: LearningLesson[],
+    requesterAccountId: string | null,
+  ): Promise<EnrichedLesson[]> {
+    if (lessons.length === 0) return [];
+    const accountIds = [...new Set(lessons.map((l) => l.authorAccountId))];
+    const authorityIds = [
+      ...new Set(
+        lessons.map((l) => l.authorityId).filter((x): x is string => Boolean(x)),
+      ),
+    ];
+    const mediaIds = [
+      ...new Set(
+        lessons.map((l) => l.mediaId).filter((x): x is string => Boolean(x)),
+      ),
+    ];
+    const lessonIds = lessons.map((l) => l.id);
+
+    const [accounts, authorities, media, enrollments] = await Promise.all([
+      this.prisma.account.findMany({
+        where: { id: { in: accountIds } },
+        select: { id: true, fullName: true },
+      }),
+      authorityIds.length
+        ? this.prisma.culturalAuthority.findMany({
+            where: { id: { in: authorityIds } },
+            select: {
+              id: true,
+              displayName: true,
+              region: true,
+              ethnicGroup: true,
+              verified: true,
+            },
+          })
+        : Promise.resolve([]),
+      mediaIds.length
+        ? this.prisma.media.findMany({
+            where: { id: { in: mediaIds } },
+            select: { id: true, cdnUrl: true },
+          })
+        : Promise.resolve([]),
+      requesterAccountId
+        ? this.prisma.lessonEnrollment.findMany({
+            where: { accountId: requesterAccountId, lessonId: { in: lessonIds } },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const accountMap = new Map(accounts.map((a) => [a.id, a]));
+    const authorityMap = new Map(authorities.map((a) => [a.id, a]));
+    const mediaMap = new Map(media.map((m) => [m.id, m]));
+    const enrollMap = new Map(enrollments.map((e) => [e.lessonId, e]));
+
+    return lessons.map((l) => {
+      const authority = l.authorityId ? authorityMap.get(l.authorityId) : null;
+      return {
+        id: l.id,
+        title: l.title,
+        description: l.description,
+        content: l.content,
+        languageCode: l.languageCode,
+        level: l.level,
+        ethnicGroup: l.ethnicGroup,
+        isTicketed: l.isTicketed,
+        liveSessionId: l.liveSessionId,
+        isFromVerifiedAuthority: authority?.verified ?? false,
+        visibilityScope: l.visibilityScope,
+        moderationStatus: l.moderationStatus,
+        position: l.position,
+        createdAt: l.createdAt,
+        author: {
+          accountId: l.authorAccountId,
+          displayName: accountMap.get(l.authorAccountId)?.fullName ?? 'Membre Origin',
+        },
+        authority: authority
+          ? {
+              id: authority.id,
+              displayName: authority.displayName,
+              region: authority.region,
+              ethnicGroup: authority.ethnicGroup,
+              verified: authority.verified,
+            }
+          : null,
+        mediaUrl: l.mediaId ? (mediaMap.get(l.mediaId)?.cdnUrl ?? null) : null,
+        enrollment: enrollMap.get(l.id) ?? null,
+      };
     });
   }
 
@@ -169,7 +300,7 @@ export class LearningService {
   async getLesson(
     id: string,
     requesterAccountId: string,
-  ): Promise<LearningLesson> {
+  ): Promise<EnrichedLesson> {
     const lesson = await this.prisma.learningLesson.findFirst({
       where: { id, deletedAt: null },
     });
@@ -185,7 +316,8 @@ export class LearningService {
       throw new NotFoundException('Lesson not found / Leçon introuvable');
     }
 
-    return lesson;
+    const [enriched] = await this.enrichLessons([lesson], requesterAccountId);
+    return enriched;
   }
 
   /**

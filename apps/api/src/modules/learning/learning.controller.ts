@@ -4,13 +4,18 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { LearningLevel, type LearningLesson, type LessonEnrollment } from '@prisma/client';
-import { LearningService } from './learning.service';
+import {
+  LearningService,
+  type EnrichedLesson,
+  type LearningLessonPage,
+} from './learning.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -49,10 +54,11 @@ export class LearningController {
   @ApiQuery({ name: 'languageCode', required: false })
   @ApiQuery({ name: 'level', required: false, enum: LearningLevel })
   listLessons(
+    @CurrentAccount('id') accountId: string,
     @Query('languageCode') languageCode?: string,
     @Query('level') level?: LearningLevel,
-  ): Promise<LearningLesson[]> {
-    return this.learningService.listLessons({ languageCode, level });
+  ): Promise<LearningLessonPage> {
+    return this.learningService.listLessons({ languageCode, level }, accountId);
   }
 
   @Get(':id')
@@ -60,7 +66,7 @@ export class LearningController {
   getLesson(
     @CurrentAccount('id') accountId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
-  ): Promise<LearningLesson> {
+  ): Promise<EnrichedLesson> {
     return this.learningService.getLesson(id, accountId);
   }
 
@@ -74,6 +80,7 @@ export class LearningController {
   }
 
   @Post(':id/progress')
+  @Patch(':id/progress')
   @ApiOperation({
     summary: 'Update progress for an enrolled lesson (100% marks it completed)',
   })

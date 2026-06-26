@@ -5,8 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseBoolPipe,
-  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Query,
@@ -55,7 +53,7 @@ export class TourismController {
   // Public browsing (optional JWT)
   // ----------------------------------------------------------------
 
-  @Get('places')
+  @Get()
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({
     summary:
@@ -64,26 +62,26 @@ export class TourismController {
   @ApiQuery({ name: 'region', required: false })
   @ApiQuery({ name: 'category', required: false, enum: TourismCategory })
   @ApiQuery({ name: 'verifiedOnly', required: false, type: Boolean })
-  @ApiQuery({ name: 'take', required: false, type: Number })
-  @ApiQuery({ name: 'skip', required: false, type: Number })
-  listPlaces(
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async listPlaces(
     @Query('region') region?: string,
     @Query('category') category?: TourismCategory,
-    @Query('verifiedOnly', new ParseBoolPipe({ optional: true }))
-    verifiedOnly?: boolean,
-    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
-    @Query('skip', new ParseIntPipe({ optional: true })) skip?: number,
-  ): Promise<TourismPlace[]> {
-    return this.tourism.listPlaces({
-      region,
+    @Query('verifiedOnly') verifiedOnly?: string,
+    @Query('limit') limit?: string,
+  ): Promise<{ items: TourismPlace[]; nextCursor: string | null }> {
+    // Lenient query parsing (no strict pipes) so the public browse endpoint
+    // never 400s on absent/loose params from the web client.
+    const take = limit && Number.isFinite(Number(limit)) ? Number(limit) : undefined;
+    const items = await this.tourism.listPlaces({
+      region: region || undefined,
       category,
-      verifiedOnly,
+      verifiedOnly: verifiedOnly === 'true' ? true : undefined,
       take,
-      skip,
     });
+    return { items, nextCursor: null };
   }
 
-  @Get('places/:id')
+  @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({
     summary: 'Fetch a single PUBLIC tourism place by id (provenance included)',
@@ -98,7 +96,7 @@ export class TourismController {
   // Submission (any authenticated account)
   // ----------------------------------------------------------------
 
-  @Post('places')
+  @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
@@ -117,7 +115,7 @@ export class TourismController {
   // Verification (moderator+)
   // ----------------------------------------------------------------
 
-  @Post('places/:id/verify')
+  @Post(':id/verify')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(AccountRole.MODERATOR)
   @ApiBearerAuth()
