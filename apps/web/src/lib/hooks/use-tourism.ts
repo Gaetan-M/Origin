@@ -1,6 +1,11 @@
 'use client';
 
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import * as tourismApi from '@/lib/api/tourism';
 import type {
   SubmitTourismPlaceInput,
@@ -38,6 +43,18 @@ export function useTourismPlaces(filters: TourismFilters = {}) {
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: isAuthenticated,
+  });
+}
+
+/**
+ * Single PUBLIC place by id, for the detail page. Seeded from any list page
+ * already in the cache so navigation feels instant, then revalidated.
+ */
+export function useTourismPlace(id: string | undefined) {
+  return useQuery({
+    queryKey: ['tourism', 'place', id],
+    queryFn: () => tourismApi.getTourismPlace(id as string),
+    enabled: Boolean(id),
   });
 }
 

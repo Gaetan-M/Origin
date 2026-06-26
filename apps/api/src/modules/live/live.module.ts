@@ -2,12 +2,18 @@ import { Module } from '@nestjs/common';
 import { LiveService } from './live.service';
 import { LiveController } from './live.controller';
 import { LivekitTokenService } from './livekit-token.service';
+import { LiveRoomService } from './live-room.service';
 import { LiveAccessHelper } from './live-access.helper';
 import { LiveNotifyHelper } from './live-notify.helper';
+import { LivePeopleHelper } from './live-people.helper';
+import { LiveInvitationService } from './live-invitation.service';
+import { LiveHostControlService } from './live-host-control.service';
 import { ReplayService } from './replay/replay.service';
 import { LiveKitWebhookController } from './replay/livekit-webhook.controller';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MessagingModule } from '../messaging/messaging.module';
+import { FamilyFeedModule } from '../family-feed/family-feed.module';
 
 /**
  * LIVE sessions (Phase 5).
@@ -22,12 +28,21 @@ import { NotificationsModule } from '../notifications/notifications.module';
  * seam can reuse it.
  */
 @Module({
-  imports: [AuthorizationModule, NotificationsModule],
+  imports: [
+    AuthorizationModule,
+    NotificationsModule,
+    MessagingModule,
+    FamilyFeedModule,
+  ],
   providers: [
     LiveService,
     LivekitTokenService,
+    LiveRoomService,
     LiveAccessHelper,
     LiveNotifyHelper,
+    LivePeopleHelper,
+    LiveInvitationService,
+    LiveHostControlService,
     ReplayService,
   ],
   controllers: [LiveController, LiveKitWebhookController],

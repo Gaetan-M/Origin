@@ -15,6 +15,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EventPublisher } from '../../eventing/event-publisher';
 import { GraphDegreeService } from '../authorization/graph-degree.service';
 import { LivekitTokenService } from './livekit-token.service';
+import { LiveNotifyHelper } from './live-notify.helper';
+import { LiveInvitationService } from './live-invitation.service';
+import { FamilyFeedService } from '../family-feed/family-feed.service';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -53,7 +56,7 @@ describe('LiveService', () => {
       findMany: jest.fn(),
       update: jest.fn(),
     },
-    liveParticipant: { upsert: jest.fn() },
+    liveParticipant: { upsert: jest.fn(), findUnique: jest.fn() },
     culturalAuthority: { findFirst: jest.fn() },
     claim: { findFirst: jest.fn() },
     contribution: { create: jest.fn() },
@@ -63,6 +66,14 @@ describe('LiveService', () => {
   const mockConfig = { get: jest.fn() };
   const mockEvents = { publish: jest.fn() };
   const mockToken = { mint: jest.fn() };
+  const mockNotifyHelper = {
+    resolveHostLabel: jest.fn().mockResolvedValue('Hôte / Host'),
+    notifyLive: jest.fn().mockResolvedValue(0),
+  };
+  const mockInvitations = {
+    notifyInviteesLive: jest.fn().mockResolvedValue(0),
+  };
+  const mockFamilyFeed = { createPost: jest.fn().mockResolvedValue({ id: 'p1' }) };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -72,6 +83,11 @@ describe('LiveService', () => {
     mockConfig.get.mockImplementation((_key: string, def?: unknown) => def);
     mockEvents.publish.mockResolvedValue(undefined);
     mockPrisma.claim.findFirst.mockResolvedValue(null);
+    mockPrisma.liveParticipant.findUnique.mockResolvedValue(null);
+    mockNotifyHelper.resolveHostLabel.mockResolvedValue('Hôte / Host');
+    mockNotifyHelper.notifyLive.mockResolvedValue(0);
+    mockInvitations.notifyInviteesLive.mockResolvedValue(0);
+    mockFamilyFeed.createPost.mockResolvedValue({ id: 'p1' });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -81,6 +97,9 @@ describe('LiveService', () => {
         { provide: ConfigService, useValue: mockConfig },
         { provide: EventPublisher, useValue: mockEvents },
         { provide: LivekitTokenService, useValue: mockToken },
+        { provide: LiveNotifyHelper, useValue: mockNotifyHelper },
+        { provide: LiveInvitationService, useValue: mockInvitations },
+        { provide: FamilyFeedService, useValue: mockFamilyFeed },
       ],
     }).compile();
 

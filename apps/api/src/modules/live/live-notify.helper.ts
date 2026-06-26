@@ -221,7 +221,7 @@ export class LiveNotifyHelper {
    * person display name (visible within the family anyway), else a generic
    * bilingual fallback. NEVER the phone number.
    */
-  private async resolveHostLabel(
+  async resolveHostLabel(
     session: LiveSessionNotifyView,
   ): Promise<string> {
     if (session.hostAuthorityId) {

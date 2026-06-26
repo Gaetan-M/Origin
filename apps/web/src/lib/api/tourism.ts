@@ -55,6 +55,8 @@ export interface TourismPlace {
   source: TourismSource;
   /** Provenance citation / URL — shown verbatim so users can trace the source. */
   sourceRef?: string | null;
+  /** Curated external image URL (e.g. Wikimedia Commons) for the postcard. */
+  imageUrl?: string | null;
   verified: boolean;
   /** Resolved public media URL, if any media was attached. */
   mediaUrl?: string | null;
@@ -105,6 +107,15 @@ export async function getTourismPlaces(
   if (query?.verifiedOnly) params.set('verifiedOnly', 'true');
   const qs = params.toString();
   const { data } = await apiClient<TourismPlacePage>(`/tourism${qs ? `?${qs}` : ''}`);
+  return data;
+}
+
+/**
+ * GET /tourism/:id — fetch a single PUBLIC place by id, provenance included.
+ * Returns only public-safe fields — never any family-graph or person data.
+ */
+export async function getTourismPlace(id: string): Promise<TourismPlace> {
+  const { data } = await apiClient<TourismPlace>(`/tourism/${id}`);
   return data;
 }
 

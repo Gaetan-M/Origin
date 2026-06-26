@@ -25,8 +25,21 @@ import {
   type LiveTokenResponse,
   type LiveReplayResponse,
 } from './live.service';
+import {
+  LiveInvitationService,
+  type InvitationView,
+  type InviteResult,
+} from './live-invitation.service';
+import {
+  LiveHostControlService,
+  type HostControlResult,
+  type RaiseHandResult,
+  type RosterEntry,
+} from './live-host-control.service';
 import { CreateLiveDto } from './dto/create-live.dto';
 import { JoinLiveDto } from './dto/join-live.dto';
+import { InviteLiveDto } from './dto/invite-live.dto';
+import { RespondInviteDto } from './dto/respond-invite.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentAccount } from '../../common/decorators/current-account.decorator';
 
@@ -43,7 +56,11 @@ import { CurrentAccount } from '../../common/decorators/current-account.decorato
 @UseGuards(JwtAuthGuard)
 @Controller('live')
 export class LiveController {
-  constructor(private readonly liveService: LiveService) {}
+  constructor(
+    private readonly liveService: LiveService,
+    private readonly invitations: LiveInvitationService,
+    private readonly hostControl: LiveHostControlService,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -130,5 +147,107 @@ export class LiveController {
     @Body() dto: JoinLiveDto,
   ): Promise<JoinTokenResult> {
     return this.liveService.getJoinToken(id, accountId, dto);
+  }
+
+  // --- invitations ---------------------------------------------------------
+
+  @Post('join-by-code/:code')
+  @ApiOperation({
+    summary:
+      'Resolve a live session from a shared invite code (visibility still enforced)',
+  })
+  joinByCode(
+    @CurrentAccount('id') accountId: string,
+    @Param('code') code: string,
+  ): Promise<LiveSession> {
+    return this.liveService.getSessionByCode(code, accountId);
+  }
+
+  @Post(':id/invite')
+  @ApiOperation({
+    summary:
+      'Invite relatives (accounts from the family graph and/or phones) to a live — host only',
+  })
+  invite(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: InviteLiveDto,
+  ): Promise<InviteResult> {
+    return this.invitations.invite(id, accountId, dto);
+  }
+
+  @Get(':id/invitations')
+  @ApiOperation({ summary: 'List a live session’s invitations (host only)' })
+  listInvitations(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<InvitationView[]> {
+    return this.invitations.listInvitations(id, accountId);
+  }
+
+  @Post(':id/respond-invite')
+  @ApiOperation({ summary: 'Accept or decline a live invitation (invitee)' })
+  respondInvite(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: RespondInviteDto,
+  ): Promise<InvitationView> {
+    return this.invitations.respond(id, accountId, dto.accept);
+  }
+
+  // --- host controls + roster ---------------------------------------------
+
+  @Get(':id/participants')
+  @ApiOperation({
+    summary: 'Live participant roster for the host panel (host only)',
+  })
+  getRoster(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<RosterEntry[]> {
+    return this.hostControl.getRoster(id, accountId);
+  }
+
+  @Post(':id/raise-hand')
+  @ApiOperation({
+    summary: 'Toggle your own raised hand in a live (participant)',
+  })
+  raiseHand(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<RaiseHandResult> {
+    return this.hostControl.toggleHand(id, accountId);
+  }
+
+  @Post(':id/participants/:identity/mute')
+  @ApiOperation({ summary: 'Mute a participant’s audio (host only)' })
+  muteParticipant(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('identity', new ParseUUIDPipe()) identity: string,
+  ): Promise<HostControlResult> {
+    return this.hostControl.muteParticipant(id, accountId, identity);
+  }
+
+  @Post(':id/participants/:identity/promote')
+  @ApiOperation({
+    summary: 'Promote a viewer to speaker / grant publish (host only)',
+  })
+  promoteParticipant(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('identity', new ParseUUIDPipe()) identity: string,
+  ): Promise<HostControlResult> {
+    return this.hostControl.promoteParticipant(id, accountId, identity);
+  }
+
+  @Post(':id/participants/:identity/remove')
+  @ApiOperation({ summary: 'Remove a participant from a live (host only)' })
+  removeParticipant(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('identity', new ParseUUIDPipe()) identity: string,
+  ): Promise<HostControlResult> {
+    return this.hostControl.removeParticipant(id, accountId, identity);
   }
 }

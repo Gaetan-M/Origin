@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as liveApi from '@/lib/api/live';
 import type {
   CreateLiveSessionInput,
+  HostParticipantAction,
+  InviteToLiveInput,
   LiveSessionStatus,
 } from '@/lib/api/live';
 import { useAuthStore } from '@/stores/auth-store';
@@ -59,6 +61,17 @@ export function useLiveReplay(id: string | null, enabled: boolean) {
   });
 }
 
+/** Resolve an invite code to its session (join deep-link page). */
+export function useLiveByCode(code: string | null) {
+  const { isAuthenticated } = useAuthStore();
+  return useQuery({
+    queryKey: [LIVES_KEY, 'by-code', code],
+    queryFn: () => liveApi.getLiveSessionByCode(code as string),
+    enabled: isAuthenticated && !!code,
+    retry: false,
+  });
+}
+
 /** Schedule a new live session; invalidates the lists on success. */
 export function useCreateLiveSession() {
   const queryClient = useQueryClient();
@@ -68,5 +81,56 @@ export function useCreateLiveSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'list'] });
     },
+  });
+}
+
+/** Start a scheduled session (host). Refreshes the detail + lists. */
+export function useStartLiveSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => liveApi.startLiveSession(id),
+    onSuccess: (session) => {
+      queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'list'] });
+      queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'detail', session.id] });
+    },
+  });
+}
+
+/** End a live session (host). Refreshes the detail + lists. */
+export function useEndLiveSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => liveApi.endLiveSession(id),
+    onSuccess: (session) => {
+      queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'list'] });
+      queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'detail', session.id] });
+    },
+  });
+}
+
+/** Toggle the caller's raised hand for a session. */
+export function useRaiseHand(id: string) {
+  return useMutation({
+    mutationFn: (raised: boolean) => liveApi.raiseLiveHand(id, raised),
+  });
+}
+
+/** Invite relatives and/or phone numbers to a session. */
+export function useInviteToLive(id: string) {
+  return useMutation({
+    mutationFn: (input: InviteToLiveInput) => liveApi.inviteToLive(id, input),
+  });
+}
+
+/** Host moderation action on a participant (promote / mute / remove). */
+export function useHostParticipantAction(id: string) {
+  return useMutation({
+    mutationFn: ({
+      identity,
+      action,
+    }: {
+      identity: string;
+      action: HostParticipantAction;
+    }) => liveApi.hostParticipantAction(id, identity, action),
   });
 }

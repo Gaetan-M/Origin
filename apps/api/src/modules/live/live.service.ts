@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import {
   LiveSessionKind,
   LiveSessionStatus,
@@ -25,10 +25,20 @@ import {
   LivekitTokenService,
   type MintedLivekitToken,
 } from './livekit-token.service';
+import { LiveNotifyHelper } from './live-notify.helper';
+import { LiveInvitationService } from './live-invitation.service';
+import { FamilyFeedService } from '../family-feed/family-feed.service';
 import { CreateLiveDto } from './dto/create-live.dto';
 import { JoinLiveDto } from './dto/join-live.dto';
 
 const LIVE_SESSION_EVENT_VERSION = 1;
+
+/** URL-safe, unambiguous alphabet for share codes (no 0/O/1/I/l). */
+const INVITE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+/** Length of a generated invite code — 8 chars ≈ 30^8 keyspace. */
+const INVITE_CODE_LENGTH = 8;
+/** Attempts to find a collision-free invite code before giving up. */
+const INVITE_CODE_MAX_TRIES = 6;
 
 /** Roles a participant can hold; mirrors LiveParticipant.role (free-form short string). */
 export type LiveParticipantRole = 'host' | 'speaker' | 'viewer';
@@ -116,6 +126,9 @@ export class LiveService {
     private readonly config: ConfigService,
     private readonly eventPublisher: EventPublisher,
     private readonly tokenService: LivekitTokenService,
+    private readonly notifyHelper: LiveNotifyHelper,
+    private readonly invitations: LiveInvitationService,
+    private readonly familyFeed: FamilyFeedService,
   ) {}
 
   /**
@@ -152,6 +165,7 @@ export class LiveService {
     }
 
     const roomName = `live-${randomUUID()}`;
+    const inviteCode = await this.generateUniqueInviteCode();
 
     const session = await this.prisma.$transaction(async (tx) => {
       const created = await tx.liveSession.create({
@@ -165,6 +179,7 @@ export class LiveService {
           visibleMaxDegree: dto.visibleMaxDegree ?? null,
           subjectPersonId: dto.subjectPersonId ?? null,
           roomName,
+          inviteCode,
           status: LiveSessionStatus.SCHEDULED,
           scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         },
@@ -209,7 +224,43 @@ export class LiveService {
     });
 
     await this.publishLifecycle(updated, 'live-session.started');
+    // Surface the live everywhere it belongs (feed + notifications). Best-effort:
+    // a failure here must never undo the LIVE transition the host just made.
+    await this.announceLive(updated);
     return updated;
+  }
+
+  /**
+   * Resolve a session from its shareable invite code (POST /live/join-by-code/:code).
+   * A shared link still respects visibility: PUBLIC resolves for anyone, but a
+   * FAMILY/PRIVATE link only resolves for someone already inside the family —
+   * the code is a convenience, NOT a bypass of the access model.
+   */
+  async getSessionByCode(
+    code: string,
+    accountId: string,
+  ): Promise<LiveSession> {
+    const session = await this.prisma.liveSession.findFirst({
+      where: { inviteCode: code, deletedAt: null },
+    });
+    if (!session) {
+      throw new NotFoundException(
+        'This live link is invalid or expired / Ce lien de direct est invalide ou expiré',
+      );
+    }
+    const requesterPersonId = await this.resolveRequesterPersonId(accountId);
+    const allowed = await this.canView(
+      session,
+      accountId,
+      requesterPersonId,
+      new Map(),
+    );
+    if (!allowed) {
+      throw new ForbiddenException(
+        'You cannot access this live session / Vous ne pouvez pas accéder à cette session',
+      );
+    }
+    return session;
   }
 
   /**
@@ -335,7 +386,22 @@ export class LiveService {
       );
     }
 
-    const role = this.resolveRole(session, isHost, dto.requestSpeaker === true);
+    // Honour a prior host promotion across token re-mints: a participant the
+    // host explicitly promoted to speaker keeps publish rights when their
+    // short-lived token is refreshed (on ANY scope — a host-granted promotion
+    // overrides the self-request scope policy), instead of silently dropping
+    // back to viewer.
+    const existing = await this.prisma.liveParticipant.findUnique({
+      where: {
+        liveSessionId_accountId: { liveSessionId: session.id, accountId },
+      },
+      select: { isSpeaker: true },
+    });
+    const role: LiveParticipantRole = isHost
+      ? 'host'
+      : existing?.isSpeaker === true
+        ? 'speaker'
+        : this.resolveRole(session, false, dto.requestSpeaker === true);
     const canPublish = role === 'host' || role === 'speaker';
 
     // Mint FIRST: if LiveKit is not configured this throws 503 and we record
@@ -357,9 +423,10 @@ export class LiveService {
           liveSessionId: session.id,
           accountId,
           role,
+          isSpeaker: canPublish,
           joinedAt: new Date(),
         },
-        update: { role, joinedAt: new Date(), leftAt: null },
+        update: { role, isSpeaker: canPublish, joinedAt: new Date(), leftAt: null },
       });
       await this.writeContribution(tx, accountId, session.id, 'JOIN', { role });
     });
@@ -605,6 +672,90 @@ export class LiveService {
       select: { personId: true },
     });
     return claim?.personId ?? null;
+  }
+
+  /**
+   * Side-effects fired when a session goes LIVE: auto-post to the Fil familial
+   * (so the live surfaces in the feed — PUBLIC lives post PUBLIC for discovery),
+   * fan out "X est en direct" to close family, and ping every invitee. Each step
+   * is independently best-effort; one failing never blocks the others, and none
+   * can fail the request (the LIVE transition already committed).
+   */
+  private async announceLive(session: LiveSession): Promise<void> {
+    const hostLabel = await this.safe(
+      () => this.notifyHelper.resolveHostLabel(session),
+      'Un proche / A relative',
+    );
+
+    // 1. Auto-post to the family feed (discovery for PUBLIC).
+    await this.runSafely('live auto feed-post', async () => {
+      await this.familyFeed.createPost({
+        authorAccountId: session.hostAccountId,
+        subjectPersonId: session.subjectPersonId,
+        postType: 'live_started',
+        body:
+          `${hostLabel} est en direct : « ${session.title} » / ` +
+          `${hostLabel} is live: "${session.title}"`,
+        visibilityScope: session.visibilityScope,
+        visibleMaxDegree: session.visibleMaxDegree,
+      });
+    });
+
+    // 2. Notify close family (FAMILY scope) that it started.
+    await this.runSafely('live family notify', () =>
+      this.notifyHelper.notifyLive(session),
+    );
+
+    // 3. Notify everyone the host explicitly invited.
+    await this.runSafely('live invitee notify', () =>
+      this.invitations.notifyInviteesLive(session),
+    );
+  }
+
+  /** Generate an invite code not currently used by any session. */
+  private async generateUniqueInviteCode(): Promise<string> {
+    for (let attempt = 0; attempt < INVITE_CODE_MAX_TRIES; attempt += 1) {
+      const candidate = this.randomInviteCode();
+      const clash = await this.prisma.liveSession.findFirst({
+        where: { inviteCode: candidate },
+        select: { id: true },
+      });
+      if (!clash) {
+        return candidate;
+      }
+    }
+    // Astronomically unlikely; fall back to a longer code rather than throw.
+    return `${this.randomInviteCode()}${this.randomInviteCode()}`;
+  }
+
+  private randomInviteCode(): string {
+    const bytes = randomBytes(INVITE_CODE_LENGTH);
+    let code = '';
+    for (let i = 0; i < INVITE_CODE_LENGTH; i += 1) {
+      code += INVITE_CODE_ALPHABET[bytes[i] % INVITE_CODE_ALPHABET.length];
+    }
+    return code;
+  }
+
+  /** Run a best-effort side-effect, logging (never throwing) on failure. */
+  private async runSafely(
+    label: string,
+    fn: () => Promise<unknown>,
+  ): Promise<void> {
+    try {
+      await fn();
+    } catch (err) {
+      this.logger.warn(`${label} failed: ${(err as Error).message}`);
+    }
+  }
+
+  /** Resolve a value, falling back on any error. */
+  private async safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+    try {
+      return await fn();
+    } catch {
+      return fallback;
+    }
   }
 
   private async writeContribution(

@@ -1181,6 +1181,14 @@ enum LiveSessionKind {
   @@map("live_session_kind")
 }
 
+enum LiveInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+
+  @@map("live_invitation_status")
+}
+
 // A real-time LIVE session. host_account_id is the broadcaster; for PUBLIC
 // LESSON/MASTERCLASS the host may act as a verified CulturalAuthority
 // (host_authority_id). For PRIVATE/FAMILY ceremonies, subject_person_id is the
@@ -1199,6 +1207,7 @@ model LiveSession {
   visibleMaxDegree   Int?              @map("visible_max_degree")
   subjectPersonId    String?           @map("subject_person_id") @db.Uuid
   roomName           String            @unique @map("room_name") @db.VarChar(120)
+  inviteCode         String?           @unique @map("invite_code") @db.VarChar(16)
   status             LiveSessionStatus @default(SCHEDULED)
   scheduledAt        DateTime?         @map("scheduled_at") @db.Timestamptz()
   startedAt          DateTime?         @map("started_at") @db.Timestamptz()
@@ -1210,6 +1219,7 @@ model LiveSession {
   deletedAt          DateTime?         @map("deleted_at") @db.Timestamptz()
 
   participants LiveParticipant[]
+  invitations  LiveInvitation[]
 
   @@index([status, scheduledAt], map: "idx_live_sessions_status_scheduled")
   @@index([hostAccountId], map: "idx_live_sessions_host_account")
@@ -1226,6 +1236,8 @@ model LiveParticipant {
   liveSessionId String    @map("live_session_id") @db.Uuid
   accountId     String    @map("account_id") @db.Uuid
   role          String    @db.VarChar(20)
+  handRaised    Boolean   @default(false) @map("hand_raised")
+  isSpeaker     Boolean   @default(false) @map("is_speaker")
   joinedAt      DateTime? @map("joined_at") @db.Timestamptz()
   leftAt        DateTime? @map("left_at") @db.Timestamptz()
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -1235,6 +1247,31 @@ model LiveParticipant {
   @@unique([liveSessionId, accountId], map: "uq_live_participant_session_account")
   @@index([liveSessionId], map: "idx_live_participants_session")
   @@map("live_participants")
+}
+
+// An invitation to a LIVE session. The inviter (inviter_account_id, a host or
+// co-host) invites either an existing account (invited_account_id) or a phone
+// number not yet on the platform (invited_phone, E.164). status tracks the
+// invitee's response. Cross-aggregate references to accounts are plain scalar
+// UUID columns (no back-relation fields on Account); the real FOREIGN KEY
+// constraints are declared in the hand-written migration. The relation to
+// LiveSession is a full Prisma relation (FK + cascade). Soft-deletable.
+model LiveInvitation {
+  id                String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  liveSessionId     String               @map("live_session_id") @db.Uuid
+  inviterAccountId  String               @map("inviter_account_id") @db.Uuid
+  invitedAccountId  String?              @map("invited_account_id") @db.Uuid
+  invitedPhone      String?              @map("invited_phone") @db.VarChar(20)
+  status            LiveInvitationStatus @default(PENDING)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  respondedAt       DateTime?            @map("responded_at") @db.Timestamptz()
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz()
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+
+  @@index([liveSessionId], map: "idx_live_invitations_session")
+  @@index([invitedAccountId], map: "idx_live_invitations_invited_account")
+  @@map("live_invitations")
 }
 
 // ============================================
@@ -1308,6 +1345,7 @@ model TourismPlace {
   longitude            Decimal?        @db.Decimal(9, 6)
   source               TourismSource
   sourceRef            String?         @map("source_ref") @db.VarChar(300)
+  imageUrl             String?         @map("image_url") @db.VarChar(500)
   verified             Boolean         @default(false)
   verifiedByAccountId  String?         @map("verified_by_account_id") @db.Uuid
   mediaId              String?         @map("media_id") @db.Uuid

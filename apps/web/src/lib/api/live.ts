@@ -48,6 +48,12 @@ export interface LiveSession {
   visibleMaxDegree: number | null;
   subjectPersonId: string | null;
   roomName: string;
+  /**
+   * Short, shareable code used to build a join deep-link (/lives/join/:code).
+   * The API resolves it back to a session via /live/join-by-code/:code. May be
+   * null on older rows or when the caller is not allowed to invite.
+   */
+  inviteCode: string | null;
   status: LiveSessionStatus;
   scheduledAt: string | null;
   startedAt: string | null;
@@ -131,4 +137,92 @@ export async function getLiveToken(id: string): Promise<LiveTokenResponse> {
 export async function getLiveReplay(id: string): Promise<LiveReplayResponse> {
   const { data } = await apiClient<LiveReplayResponse>(`/live/${id}/replay`);
   return data;
+}
+
+/** Start a SCHEDULED session (host only). Flips it to LIVE. */
+export async function startLiveSession(id: string): Promise<LiveSession> {
+  const { data } = await apiClient<LiveSession>(`/live/${id}/start`, {
+    method: 'POST',
+  });
+  return data;
+}
+
+/** End a LIVE session (host only). Flips it to ENDED and triggers replay prep. */
+export async function endLiveSession(id: string): Promise<LiveSession> {
+  const { data } = await apiClient<LiveSession>(`/live/${id}/end`, {
+    method: 'POST',
+  });
+  return data;
+}
+
+/**
+ * Resolve an invite code to its live session. Used by the public-ish join
+ * deep-link page (/lives/join/:code). Visibility is still enforced server-side.
+ */
+export async function getLiveSessionByCode(code: string): Promise<LiveSession> {
+  const { data } = await apiClient<LiveSession>(
+    `/live/join-by-code/${encodeURIComponent(code)}`,
+  );
+  return data;
+}
+
+export interface RaiseHandResponse {
+  /** New raised state after the toggle. */
+  raised: boolean;
+}
+
+/**
+ * Toggle the caller's "raised hand" for a session. Persisted server-side so the
+ * host is notified even if the realtime data-channel ping is missed.
+ */
+export async function raiseLiveHand(
+  id: string,
+  raised: boolean,
+): Promise<RaiseHandResponse> {
+  const { data } = await apiClient<RaiseHandResponse>(`/live/${id}/raise-hand`, {
+    method: 'POST',
+    body: JSON.stringify({ raised }),
+  });
+  return data;
+}
+
+export interface InviteToLiveInput {
+  /** Persons from the caller's family graph to notify. */
+  personIds?: string[];
+  /** Raw E.164 phone numbers to invite (SMS / WhatsApp). */
+  phoneNumbers?: string[];
+}
+
+export interface InviteToLiveResponse {
+  invited: number;
+}
+
+/** Invite relatives (by person id) and/or phone numbers to a session. */
+export async function inviteToLive(
+  id: string,
+  input: InviteToLiveInput,
+): Promise<InviteToLiveResponse> {
+  const { data } = await apiClient<InviteToLiveResponse>(`/live/${id}/invite`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return data;
+}
+
+/** Host moderation action targeting one participant identity. */
+export type HostParticipantAction = 'promote' | 'mute' | 'remove';
+
+/**
+ * Apply a host moderation action to a participant. `identity` is the LiveKit
+ * participant identity (the account id encoded in the join token).
+ */
+export async function hostParticipantAction(
+  id: string,
+  identity: string,
+  action: HostParticipantAction,
+): Promise<void> {
+  await apiClient(
+    `/live/${id}/participants/${encodeURIComponent(identity)}/${action}`,
+    { method: 'POST' },
+  );
 }
