@@ -155,6 +155,16 @@ export async function endLiveSession(id: string): Promise<LiveSession> {
   return data;
 }
 
+/** Delete a session in ANY status (host only). Soft-delete; removes it from lists. */
+export async function deleteLiveSession(
+  id: string,
+): Promise<{ id: string; deleted: true }> {
+  const { data } = await apiClient<{ id: string; deleted: true }>(`/live/${id}`, {
+    method: 'DELETE',
+  });
+  return data;
+}
+
 /**
  * Ensure the session has a shareable invite code (host only). Idempotent —
  * returns the session with a non-null `inviteCode`, generating one if the

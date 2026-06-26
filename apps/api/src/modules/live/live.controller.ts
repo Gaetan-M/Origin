@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -134,6 +135,15 @@ export class LiveController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<LiveSession> {
     return this.liveService.endSession(id, accountId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a live session in any status (host only)' })
+  deleteSession(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ id: string; deleted: true }> {
+    return this.liveService.deleteSession(id, accountId);
   }
 
   @Post(':id/token')

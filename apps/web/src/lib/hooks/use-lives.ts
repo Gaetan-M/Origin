@@ -108,6 +108,17 @@ export function useEndLiveSession() {
   });
 }
 
+/** Delete a session in any status (host only); refreshes the list on success. */
+export function useDeleteLiveSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => liveApi.deleteLiveSession(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'list'] });
+    },
+  });
+}
+
 /** Toggle the caller's raised hand for a session. */
 export function useRaiseHand(id: string) {
   return useMutation({

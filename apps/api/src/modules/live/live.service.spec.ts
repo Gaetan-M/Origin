@@ -60,6 +60,7 @@ describe('LiveService', () => {
     culturalAuthority: { findFirst: jest.fn() },
     claim: { findFirst: jest.fn() },
     contribution: { create: jest.fn() },
+    account: { findUnique: jest.fn() },
     $transaction: jest.fn(),
   };
   const mockGraphDegree = { computeDegree: jest.fn() };
@@ -84,6 +85,7 @@ describe('LiveService', () => {
     mockEvents.publish.mockResolvedValue(undefined);
     mockPrisma.claim.findFirst.mockResolvedValue(null);
     mockPrisma.liveParticipant.findUnique.mockResolvedValue(null);
+    mockPrisma.account.findUnique.mockResolvedValue({ fullName: 'Test User' });
     mockNotifyHelper.resolveHostLabel.mockResolvedValue('Hôte / Host');
     mockNotifyHelper.notifyLive.mockResolvedValue(0);
     mockInvitations.notifyInviteesLive.mockResolvedValue(0);
@@ -300,6 +302,7 @@ describe('LiveService', () => {
         'live-room-1',
         'host-1',
         expect.objectContaining({ canPublish: true, canSubscribe: true }),
+        expect.any(String),
       );
       expect(result.role).toBe('host');
       expect(result.token).toBe('jwt.token.value');
@@ -334,6 +337,7 @@ describe('LiveService', () => {
         'live-room-1',
         'viewer-1',
         expect.objectContaining({ canPublish: false, canSubscribe: true }),
+        expect.any(String),
       );
     });
   });

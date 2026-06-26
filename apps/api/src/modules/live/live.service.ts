@@ -315,6 +315,29 @@ export class LiveService {
   }
 
   /**
+   * Soft-delete a session (host-only), in ANY status. Lets the host remove a
+   * scheduled live they no longer want, or clean up old/ended ones — there was
+   * previously no way to remove a session at all. Idempotent-ish: a session
+   * already deleted (or not owned) yields a NotFound via loadOwnedSession.
+   */
+  async deleteSession(
+    sessionId: string,
+    hostAccountId: string,
+  ): Promise<{ id: string; deleted: true }> {
+    const session = await this.loadOwnedSession(sessionId, hostAccountId);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.liveSession.update({
+        where: { id: session.id },
+        data: { deletedAt: new Date() },
+      });
+      await this.writeContribution(tx, hostAccountId, session.id, 'DELETE', {
+        status: session.status,
+      });
+    });
+    return { id: session.id, deleted: true };
+  }
+
+  /**
    * List sessions visible to the requester. PUBLIC sessions are always
    * included; PRIVATE/FAMILY sessions pass the degree gate against the
    * requester's claimed person node. Newest-relevant first.

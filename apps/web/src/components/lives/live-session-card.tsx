@@ -4,19 +4,24 @@ import Link from 'next/link';
 import {
   BookOpen,
   CalendarClock,
+  Loader2,
   Mic2,
   PlayCircle,
   Radio,
   Sparkles,
+  Trash2,
   Users,
   Users2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { LiveSession, LiveSessionKind } from '@/lib/api/live';
+import { useDeleteLiveSession } from '@/lib/hooks/use-lives';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   useLiveKindLabel,
   useLivesLocale,
@@ -42,6 +47,18 @@ export function LiveSessionCard({ session }: LiveSessionCardProps) {
   const kindLabel = useLiveKindLabel();
   const statusLabel = useLiveStatusLabel();
   const locale = useLivesLocale();
+  const account = useAuthStore((s) => s.account);
+  const deleteLive = useDeleteLiveSession();
+
+  const isHost = !!account && session.hostAccountId === account.id;
+
+  function handleDelete() {
+    if (!window.confirm(t('deleteLiveConfirm'))) return;
+    deleteLive.mutate(session.id, {
+      onSuccess: () => toast.success(t('deleteLiveDone')),
+      onError: () => toast.error(t('deleteLiveFailed')),
+    });
+  }
 
   const isLive = session.status === 'LIVE';
   const isScheduled = session.status === 'SCHEDULED';
@@ -125,7 +142,7 @@ export function LiveSessionCard({ session }: LiveSessionCardProps) {
           </div>
         </div>
 
-        <div className="shrink-0 self-center">
+        <div className="flex shrink-0 flex-col items-end gap-2 self-center">
           {isLive && (
             <Button asChild size="sm">
               <Link href={`/lives/${session.id}`}>
@@ -146,6 +163,22 @@ export function LiveSessionCard({ session }: LiveSessionCardProps) {
                 {t('watchReplay')}
               </Link>
             </Button>
+          )}
+          {isHost && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleteLive.isPending}
+              aria-label={t('deleteLive')}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-charcoal/45 transition-colors hover:bg-error/10 hover:text-error disabled:opacity-50"
+            >
+              {deleteLive.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              {t('deleteLive')}
+            </button>
           )}
         </div>
       </CardContent>
