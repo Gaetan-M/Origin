@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { Radio } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
@@ -126,7 +127,7 @@ function ComingSoon() {
       </div>
       <p className="max-w-sm text-sm text-charcoal/60">{t('comingSoonBody')}</p>
       <Button asChild variant="ghost" size="sm">
-        <a href="/lives">{t('backToList')}</a>
+        <Link href="/lives">{t('backToList')}</Link>
       </Button>
     </div>
   );
