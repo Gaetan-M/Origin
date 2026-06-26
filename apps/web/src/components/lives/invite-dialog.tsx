@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   Check,
   Copy,
+  Loader2,
+  MessageCircle,
   Phone,
   QrCode,
   Search,
@@ -25,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { PersonAvatar } from '@/components/shared/person-avatar';
 import { cn } from '@/lib/utils';
 import { useMyPersons } from '@/lib/hooks/use-persons';
-import { useInviteToLive } from '@/lib/hooks/use-lives';
+import { useInviteToLive, useEnsureInviteCode } from '@/lib/hooks/use-lives';
 import { useLivesT } from './lives-i18n';
 
 interface InviteDialogProps {
@@ -48,13 +50,32 @@ export function InviteDialog({
 }: InviteDialogProps) {
   const t = useLivesT();
   const invite = useInviteToLive(sessionId);
+  const ensureCode = useEnsureInviteCode(sessionId);
+
+  // The host may open this dialog on a session that has no shareable code yet
+  // (older sessions predate invite codes). Track the effective code locally and
+  // generate one on demand so the link/QR is always available.
+  const [effectiveCode, setEffectiveCode] = useState<string | null>(inviteCode);
+
+  useEffect(() => {
+    if (inviteCode) setEffectiveCode(inviteCode);
+  }, [inviteCode]);
+
+  const ensure = ensureCode.mutate;
+  useEffect(() => {
+    if (open && !effectiveCode && !ensureCode.isPending) {
+      ensure(undefined, {
+        onSuccess: (session) => setEffectiveCode(session.inviteCode ?? null),
+      });
+    }
+  }, [open, effectiveCode, ensureCode.isPending, ensure]);
 
   const joinUrl = useMemo(() => {
-    if (!inviteCode) return null;
+    if (!effectiveCode) return null;
     const origin =
       typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/lives/join/${inviteCode}`;
-  }, [inviteCode]);
+    return `${origin}/lives/join/${effectiveCode}`;
+  }, [effectiveCode]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -90,7 +111,18 @@ export function InviteDialog({
           </TabsContent>
 
           <TabsContent value="link">
-            <LinkInvite joinUrl={joinUrl} code={inviteCode} />
+            <LinkInvite
+              joinUrl={joinUrl}
+              code={effectiveCode}
+              generating={ensureCode.isPending}
+              onGenerate={() =>
+                ensure(undefined, {
+                  onSuccess: (session) =>
+                    setEffectiveCode(session.inviteCode ?? null),
+                  onError: () => toast.error(t('inviteFailed')),
+                })
+              }
+            />
           </TabsContent>
 
           <TabsContent value="phone">
@@ -223,9 +255,13 @@ function FamilyInvite({
 function LinkInvite({
   joinUrl,
   code,
+  generating,
+  onGenerate,
 }: {
   joinUrl: string | null;
   code: string | null;
+  generating: boolean;
+  onGenerate: () => void;
 }) {
   const t = useLivesT();
   const [copied, setCopied] = useState(false);
@@ -255,11 +291,32 @@ function LinkInvite({
     }
   }
 
+  function shareWhatsapp() {
+    if (!joinUrl) return;
+    const text = `${t('inviteShareMessage')} ${joinUrl}`;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(text)}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
+
+  // No code yet: we auto-generate on open, but expose an explicit action too.
   if (!joinUrl || !code) {
     return (
-      <p className="py-8 text-center text-sm text-charcoal/50">
-        {t('comingSoonBody')}
-      </p>
+      <div className="flex flex-col items-center gap-3 py-8">
+        {generating ? (
+          <p className="flex items-center gap-2 text-sm text-charcoal/60">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t('inviteGenerating')}
+          </p>
+        ) : (
+          <Button onClick={onGenerate}>
+            <QrCode className="h-4 w-4" />
+            {t('inviteGenerateLink')}
+          </Button>
+        )}
+      </div>
     );
   }
 
@@ -287,12 +344,21 @@ function LinkInvite({
         </span>
       </div>
 
+      <button
+        type="button"
+        onClick={shareWhatsapp}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1ebe5b]"
+      >
+        <MessageCircle className="h-4 w-4" />
+        {t('inviteWhatsapp')}
+      </button>
+
       <div className="grid w-full grid-cols-2 gap-2">
         <Button variant="outline" onClick={copy}>
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           {copied ? t('inviteCopied') : t('inviteCopyLink')}
         </Button>
-        <Button onClick={share}>
+        <Button variant="outline" onClick={share}>
           <Share2 className="h-4 w-4" />
           {t('inviteShare')}
         </Button>

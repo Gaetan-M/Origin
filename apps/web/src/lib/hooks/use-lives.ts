@@ -122,6 +122,21 @@ export function useInviteToLive(id: string) {
   });
 }
 
+/**
+ * Ensure the session has a shareable invite code (host only). Idempotent; on
+ * success refreshes the session detail so the new code propagates to the UI.
+ */
+export function useEnsureInviteCode(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => liveApi.ensureLiveInviteCode(id),
+    onSuccess: (session) => {
+      queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'detail', session.id] });
+      queryClient.invalidateQueries({ queryKey: [LIVES_KEY, 'list'] });
+    },
+  });
+}
+
 /** Host moderation action on a participant (promote / mute / remove). */
 export function useHostParticipantAction(id: string) {
   return useMutation({

@@ -72,6 +72,7 @@ export class LivekitTokenService {
     roomName: string,
     identity: string,
     grants: LivekitGrantOptions,
+    displayName?: string | null,
   ): Promise<MintedLivekitToken> {
     const { apiKey, apiSecret, url } = this.readCredentials();
     if (!apiKey || !apiSecret || !url) {
@@ -86,6 +87,9 @@ export class LivekitTokenService {
 
     const accessToken = new AccessToken(apiKey, apiSecret, {
       identity,
+      // Human-readable name surfaced as participant.name on every client — so
+      // tiles and chat show real names, never the raw account UUID identity.
+      ...(displayName ? { name: displayName } : {}),
       ttl: TOKEN_TTL,
     });
     accessToken.addGrant({

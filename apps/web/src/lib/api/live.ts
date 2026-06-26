@@ -156,6 +156,18 @@ export async function endLiveSession(id: string): Promise<LiveSession> {
 }
 
 /**
+ * Ensure the session has a shareable invite code (host only). Idempotent —
+ * returns the session with a non-null `inviteCode`, generating one if the
+ * session (e.g. an older one) didn't have it yet.
+ */
+export async function ensureLiveInviteCode(id: string): Promise<LiveSession> {
+  const { data } = await apiClient<LiveSession>(`/live/${id}/invite-code`, {
+    method: 'POST',
+  });
+  return data;
+}
+
+/**
  * Resolve an invite code to its live session. Used by the public-ish join
  * deep-link page (/lives/join/:code). Visibility is still enforced server-side.
  */

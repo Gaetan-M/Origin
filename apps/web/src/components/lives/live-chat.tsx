@@ -16,6 +16,8 @@ import { useLivesLocale, useLivesT } from './lives-i18n';
 interface LiveChatProps {
   open: boolean;
   onClose: () => void;
+  /** The live's title — used as the chat (group) name, like a WhatsApp group. */
+  title?: string;
 }
 
 /**
@@ -23,7 +25,7 @@ interface LiveChatProps {
  * desktop and fills the sheet on mobile. Messages are ephemeral (not persisted)
  * — a lightweight back-channel for a live audience.
  */
-export function LiveChat({ open, onClose }: LiveChatProps) {
+export function LiveChat({ open, onClose, title }: LiveChatProps) {
   const t = useLivesT();
   const locale = useLivesLocale();
   const { localParticipant } = useLocalParticipant();
@@ -81,7 +83,14 @@ export function LiveChat({ open, onClose }: LiveChatProps) {
       )}
     >
       <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <h3 className="text-sm font-semibold text-white">{t('chatTitle')}</h3>
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold text-white">
+            {title?.trim() || t('chatTitle')}
+          </h3>
+          {title?.trim() && (
+            <p className="truncate text-[11px] text-white/45">{t('chatTitle')}</p>
+          )}
+        </div>
         <button
           type="button"
           onClick={onClose}

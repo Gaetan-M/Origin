@@ -50,6 +50,8 @@ interface LiveRoomProps {
   hostIdentity: string | null;
   /** Shareable invite code for the invite dialog. */
   inviteCode: string | null;
+  /** The live's title — used as the chat (group) name. */
+  title: string;
   /** Called when the participant leaves or is disconnected. */
   onLeave: () => void;
 }
@@ -67,6 +69,7 @@ export function LiveRoom({
   isHost,
   hostIdentity,
   inviteCode,
+  title,
   onLeave,
 }: LiveRoomProps) {
   return (
@@ -87,6 +90,7 @@ export function LiveRoom({
         isHost={isHost}
         hostIdentity={hostIdentity}
         inviteCode={inviteCode}
+        title={title}
         onLeave={onLeave}
       />
     </LiveKitRoom>
@@ -98,6 +102,7 @@ interface RoomLayoutProps {
   isHost: boolean;
   hostIdentity: string | null;
   inviteCode: string | null;
+  title: string;
   onLeave: () => void;
 }
 
@@ -106,6 +111,7 @@ function RoomLayout({
   isHost,
   hostIdentity,
   inviteCode,
+  title,
   onLeave,
 }: RoomLayoutProps) {
   const t = useLivesT();
@@ -206,7 +212,11 @@ function RoomLayout({
           onHostAction={onHostAction}
         />
         <LiveReactions />
-        <LiveChat open={chatOpen} onClose={() => setChatOpen(false)} />
+        <LiveChat
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          title={title}
+        />
         {isHost && (
           <LiveHostPanel
             open={hostPanelOpen}

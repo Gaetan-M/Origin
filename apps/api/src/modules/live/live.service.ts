@@ -199,6 +199,27 @@ export class LiveService {
   }
 
   /**
+   * Ensure a session has a shareable invite code (host-only). Idempotent:
+   * returns the existing code if present, otherwise generates, persists and
+   * returns one. This lets sessions created before invite codes existed (or any
+   * session missing a code) become shareable on demand from the invite dialog.
+   */
+  async ensureInviteCode(
+    sessionId: string,
+    hostAccountId: string,
+  ): Promise<LiveSession> {
+    const session = await this.loadOwnedSession(sessionId, hostAccountId);
+    if (session.inviteCode) {
+      return session;
+    }
+    const inviteCode = await this.generateUniqueInviteCode();
+    return this.prisma.liveSession.update({
+      where: { id: sessionId },
+      data: { inviteCode },
+    });
+  }
+
+  /**
    * Transition a SCHEDULED session to LIVE (host-only), stamping started_at.
    */
   async startSession(
@@ -405,11 +426,18 @@ export class LiveService {
     const canPublish = role === 'host' || role === 'speaker';
 
     // Mint FIRST: if LiveKit is not configured this throws 503 and we record
-    // nothing. Identity is the stable account id.
-    const minted = await this.tokenService.mint(session.roomName, accountId, {
-      canPublish,
-      canSubscribe: true,
-    });
+    // nothing. Identity is the stable account id; the human name is attached so
+    // tiles/chat never show the raw UUID.
+    const displayName = await this.resolveAccountDisplayName(accountId);
+    const minted = await this.tokenService.mint(
+      session.roomName,
+      accountId,
+      {
+        canPublish,
+        canSubscribe: true,
+      },
+      displayName,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       await tx.liveParticipant.upsert({
@@ -672,6 +700,22 @@ export class LiveService {
       select: { personId: true },
     });
     return claim?.personId ?? null;
+  }
+
+  /**
+   * Human-readable display name for a participant, attached to their LiveKit
+   * token so tiles and chat show a real name instead of the account UUID.
+   * Falls back to a neutral label rather than ever leaking the id.
+   */
+  private async resolveAccountDisplayName(
+    accountId: string,
+  ): Promise<string> {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: { fullName: true },
+    });
+    const name = account?.fullName?.trim();
+    return name && name.length > 0 ? name : 'Invité';
   }
 
   /**

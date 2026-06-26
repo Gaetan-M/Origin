@@ -100,6 +100,7 @@ export default function LiveRoomPage() {
           isHost={isHost}
           hostIdentity={session?.hostAccountId ?? null}
           inviteCode={session?.inviteCode ?? null}
+          title={title}
           onLeave={() => router.push('/lives')}
         />
       )}
@@ -163,6 +164,7 @@ interface LiveStageGateProps {
   isHost: boolean;
   hostIdentity: string | null;
   inviteCode: string | null;
+  title: string;
   onLeave: () => void;
 }
 
@@ -175,6 +177,7 @@ function LiveStageGate({
   isHost,
   hostIdentity,
   inviteCode,
+  title,
   onLeave,
 }: LiveStageGateProps) {
   const t = useLivesT();
@@ -203,6 +206,7 @@ function LiveStageGate({
         isHost={isHost}
         hostIdentity={hostIdentity}
         inviteCode={inviteCode}
+        title={title}
         onLeave={onLeave}
       />
     </div>

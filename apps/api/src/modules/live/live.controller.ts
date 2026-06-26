@@ -163,6 +163,18 @@ export class LiveController {
     return this.liveService.getSessionByCode(code, accountId);
   }
 
+  @Post(':id/invite-code')
+  @ApiOperation({
+    summary:
+      'Ensure the session has a shareable invite code (host only); idempotent',
+  })
+  ensureInviteCode(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<LiveSession> {
+    return this.liveService.ensureInviteCode(id, accountId);
+  }
+
   @Post(':id/invite')
   @ApiOperation({
     summary:
