@@ -1236,3 +1236,145 @@ model LiveParticipant {
   @@index([liveSessionId], map: "idx_live_participants_session")
   @@map("live_participants")
 }
+
+// ============================================
+// PHASE 6 — TOURISM (verified heritage SOURCE) & LEARNING (language lessons)
+// Additive models for two PUBLIC verticals surfaced in discovery:
+//   - TOURISM: highlighted places of heritage/tourism. Data may originate from
+//     the Ministry of Tourism / NGOs / the community, but is used STRICTLY as a
+//     cited SOURCE with provenance shown (source + source_ref). INDEPENDENCE is
+//     a core value: this data NEVER governs or controls the family graph, has
+//     NO write access to it, and is never coupled to private person data. A
+//     TourismPlace is PUBLIC content carrying only place metadata + provenance.
+//   - LEARNING: structured mini-lessons preserving culture, especially LANGUAGE
+//     lessons. A LearningLesson is authored content (reusing the CulturalContent
+//     idea); a lesson from a VERIFIED CulturalAuthority may be auto-approved
+//     (moderation_status APPROVED), otherwise PENDING. It may be ticketed and
+//     linked to a live LESSON (live_session_id). Users enroll and track progress
+//     via LessonEnrollment.
+//
+// Cross-aggregate references (Account / CulturalAuthority / Media / LiveSession)
+// are kept as plain scalar UUID columns here; the real FOREIGN KEY constraints
+// are declared in the hand-written migration, keeping the change additive on the
+// existing Account / CulturalAuthority / Media / LiveSession models (no
+// back-relation fields required on them). The relation strictly between the two
+// new learning models (LearningLesson <-> LessonEnrollment) is a full Prisma
+// relation. All three models are soft-deletable where applicable, visibility-
+// scoped (default PUBLIC), and mutations write a Contribution audit row
+// (enforced in services).
+// ============================================
+
+enum TourismSource {
+  MINISTRY
+  NGO
+  COMMUNITY
+
+  @@map("tourism_source")
+}
+
+enum TourismCategory {
+  HERITAGE
+  NATURE
+  CULTURE
+  MUSEUM
+  CHEFFERIE
+  RELIGIOUS
+  OTHER
+
+  @@map("tourism_category")
+}
+
+enum LearningLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+
+  @@map("learning_level")
+}
+
+// A highlighted place of heritage/tourism surfaced PUBLIC in discovery. The
+// data is treated STRICTLY as a cited SOURCE: `source` records the kind of
+// origin (MINISTRY / NGO / COMMUNITY) and `source_ref` carries the provenance
+// citation/url shown to users. `verified` (set by a moderator/admin via
+// verified_by_account_id) reflects source verification only — it confers NO
+// authority over the family graph. This model carries NO family-graph data.
+model TourismPlace {
+  id                   String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                 String          @db.VarChar(200)
+  description          String?
+  region               String?         @db.VarChar(120)
+  category             TourismCategory
+  latitude             Decimal?        @db.Decimal(9, 6)
+  longitude            Decimal?        @db.Decimal(9, 6)
+  source               TourismSource
+  sourceRef            String?         @map("source_ref") @db.VarChar(300)
+  verified             Boolean         @default(false)
+  verifiedByAccountId  String?         @map("verified_by_account_id") @db.Uuid
+  mediaId              String?         @map("media_id") @db.Uuid
+  submittedByAccountId String?         @map("submitted_by_account_id") @db.Uuid
+  visibilityScope      VisibilityScope @default(PUBLIC) @map("visibility_scope")
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt            DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt            DateTime?       @map("deleted_at") @db.Timestamptz()
+
+  @@index([region], map: "idx_tourism_places_region")
+  @@index([category], map: "idx_tourism_places_category")
+  @@index([verified], map: "idx_tourism_places_verified")
+  @@index([source], map: "idx_tourism_places_source")
+  @@map("tourism_places")
+}
+
+// A structured mini-lesson preserving culture, especially LANGUAGE lessons
+// (language_code = the language taught). Authored by an account and optionally
+// attributed to a CulturalAuthority (authority_id); a lesson from a VERIFIED
+// authority may be auto-approved (moderation_status APPROVED), otherwise it goes
+// through moderation (PENDING). May be ticketed (is_ticketed) and linked to a
+// live LESSON (live_session_id) or premium. visibility_scope defaults to PUBLIC;
+// this content carries NO family-graph data. `position` orders lessons within a
+// language/course track.
+model LearningLesson {
+  id               String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title            String           @db.VarChar(200)
+  description      String?
+  content          String?
+  languageCode     String?          @map("language_code") @db.VarChar(10)
+  level            LearningLevel    @default(BEGINNER)
+  ethnicGroup      String?          @map("ethnic_group") @db.VarChar(120)
+  authorityId      String?          @map("authority_id") @db.Uuid
+  authorAccountId  String           @map("author_account_id") @db.Uuid
+  mediaId          String?          @map("media_id") @db.Uuid
+  isTicketed       Boolean          @default(false) @map("is_ticketed")
+  liveSessionId    String?          @map("live_session_id") @db.Uuid
+  visibilityScope  VisibilityScope  @default(PUBLIC) @map("visibility_scope")
+  moderationStatus ModerationStatus @default(PENDING) @map("moderation_status")
+  position         Int              @default(0)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime?        @map("deleted_at") @db.Timestamptz()
+
+  enrollments LessonEnrollment[]
+
+  @@index([languageCode], map: "idx_learning_lessons_language_code")
+  @@index([level], map: "idx_learning_lessons_level")
+  @@index([moderationStatus, createdAt(sort: Desc)], map: "idx_learning_lessons_moderation_created")
+  @@map("learning_lessons")
+}
+
+// An account's enrollment in a LearningLesson, tracking progress_percent and
+// completion (completed_at). Unique per (lesson, account).
+model LessonEnrollment {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lessonId        String    @map("lesson_id") @db.Uuid
+  accountId       String    @map("account_id") @db.Uuid
+  progressPercent Int       @default(0) @map("progress_percent")
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  lesson LearningLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, accountId], map: "uq_lesson_enrollment_lesson_account")
+  @@index([lessonId], map: "idx_lesson_enrollments_lesson")
+  @@index([accountId], map: "idx_lesson_enrollments_account")
+  @@map("lesson_enrollments")
+}

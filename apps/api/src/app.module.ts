@@ -33,6 +33,8 @@ import { AlbumsModule } from './modules/albums/albums.module';
 import { MemorialModule } from './modules/memorial/memorial.module';
 import { OralHistoryModule } from './modules/oral-history/oral-history.module';
 import { LiveModule } from './modules/live/live.module';
+import { TourismModule } from './modules/tourism/tourism.module';
+import { LearningModule } from './modules/learning/learning.module';
 import { SearchModule } from './search/search.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -85,6 +87,8 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     MemorialModule,
     OralHistoryModule,
     LiveModule,
+    TourismModule,
+    LearningModule,
     SearchModule,
   ],
   providers: [

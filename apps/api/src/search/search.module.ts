@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { InMemorySearchIndexer } from './in-memory-search-indexer';
 import { LifeEventIndexingSubscriber } from './life-event-indexing.subscriber';
 import { CulturalIndexingSubscriber } from './cultural-indexing.subscriber';
+import { TourismLearningIndexingSubscriber } from './tourism-learning-indexing.subscriber';
 import { SEARCH_INDEXER } from './search-indexer.interface';
 
 /**
@@ -17,7 +18,13 @@ import { SEARCH_INDEXER } from './search-indexer.interface';
     { provide: SEARCH_INDEXER, useClass: InMemorySearchIndexer },
     LifeEventIndexingSubscriber,
     CulturalIndexingSubscriber,
+    TourismLearningIndexingSubscriber,
   ],
-  exports: [SEARCH_INDEXER, LifeEventIndexingSubscriber, CulturalIndexingSubscriber],
+  exports: [
+    SEARCH_INDEXER,
+    LifeEventIndexingSubscriber,
+    CulturalIndexingSubscriber,
+    TourismLearningIndexingSubscriber,
+  ],
 })
 export class SearchModule {}
