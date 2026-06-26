@@ -54,6 +54,25 @@ export interface JoinTokenResult extends MintedLivekitToken {
 }
 
 /**
+ * Graceful token response for the web client. `configured` reflects whether
+ * LiveKit creds are set; when false the room renders "coming soon" instead of
+ * attempting a connection — it never 503s the client.
+ */
+export interface LiveTokenResponse {
+  configured: boolean;
+  token: string | null;
+  serverUrl: string | null;
+  roomName: string | null;
+  identity: string | null;
+}
+
+/** Replay playback descriptor: media kind (audio-first) + a URL when published. */
+export interface LiveReplayResponse {
+  mediaKind: 'AUDIO' | 'VIDEO';
+  url: string | null;
+}
+
+/**
  * Internal lifecycle event payload. Carries only the session's own identity and
  * coarse state — never a computed degree, relationship path, or any private
  * person data beyond the subject anchor that downstream replay/feed handlers
@@ -346,6 +365,92 @@ export class LiveService {
     });
 
     return { ...minted, liveSessionId: session.id, role };
+  }
+
+  /**
+   * Fetch a single live session the requester is allowed to view (GET /live/:id).
+   */
+  async getSession(
+    sessionId: string,
+    accountId: string,
+  ): Promise<LiveSession> {
+    const session = await this.prisma.liveSession.findFirst({
+      where: { id: sessionId, deletedAt: null },
+    });
+    if (!session) {
+      throw new NotFoundException(
+        'Live session not found / Session en direct introuvable',
+      );
+    }
+    const requesterPersonId = await this.resolveRequesterPersonId(accountId);
+    const allowed = await this.canView(
+      session,
+      accountId,
+      requesterPersonId,
+      new Map(),
+    );
+    if (!allowed) {
+      throw new ForbiddenException(
+        'You cannot access this live session / Vous ne pouvez pas accéder à cette session',
+      );
+    }
+    return session;
+  }
+
+  /**
+   * Graceful token endpoint (GET /live/:id/token): returns
+   * `{ configured: false }` when LiveKit is not provisioned instead of a 503,
+   * so the web room degrades to "coming soon". When configured, mints a token.
+   */
+  async getJoinTokenResponse(
+    sessionId: string,
+    accountId: string,
+    dto: JoinLiveDto = {},
+  ): Promise<LiveTokenResponse> {
+    if (!this.tokenService.isConfigured()) {
+      return {
+        configured: false,
+        token: null,
+        serverUrl: null,
+        roomName: null,
+        identity: null,
+      };
+    }
+    const r = await this.getJoinToken(sessionId, accountId, dto);
+    return {
+      configured: true,
+      token: r.token,
+      serverUrl: r.url,
+      roomName: r.roomName,
+      identity: r.identity,
+    };
+  }
+
+  /**
+   * Replay descriptor (GET /live/:id/replay): visibility-enforced; returns a
+   * playback URL only once the recording is published. Audio-first by default.
+   */
+  async getReplay(
+    sessionId: string,
+    accountId: string,
+  ): Promise<LiveReplayResponse> {
+    const session = await this.getSession(sessionId, accountId);
+    if (!session.replayPublished || !session.recordingMediaId) {
+      return { mediaKind: 'AUDIO', url: null };
+    }
+    const media = await this.prisma.media.findFirst({
+      where: { id: session.recordingMediaId, deletedAt: null },
+      select: { fileType: true, cdnUrl: true },
+    });
+    if (!media) {
+      return { mediaKind: 'AUDIO', url: null };
+    }
+    const mediaKind: 'AUDIO' | 'VIDEO' = media.fileType
+      .toLowerCase()
+      .includes('video')
+      ? 'VIDEO'
+      : 'AUDIO';
+    return { mediaKind, url: media.cdnUrl ?? null };
   }
 
   // --- internals -----------------------------------------------------------

@@ -19,7 +19,12 @@ import {
   VisibilityScope,
   type LiveSession,
 } from '@prisma/client';
-import { LiveService, type JoinTokenResult } from './live.service';
+import {
+  LiveService,
+  type JoinTokenResult,
+  type LiveTokenResponse,
+  type LiveReplayResponse,
+} from './live.service';
 import { CreateLiveDto } from './dto/create-live.dto';
 import { JoinLiveDto } from './dto/join-live.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -64,6 +69,36 @@ export class LiveController {
     @Query('status') status?: LiveSessionStatus,
   ): Promise<LiveSession[]> {
     return this.liveService.listSessions(accountId, { scope, status });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a single live session (visibility enforced)' })
+  getSession(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<LiveSession> {
+    return this.liveService.getSession(id, accountId);
+  }
+
+  @Get(':id/token')
+  @ApiOperation({
+    summary:
+      'Get a LiveKit join token; returns { configured: false } when live is not provisioned',
+  })
+  getTokenGraceful(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<LiveTokenResponse> {
+    return this.liveService.getJoinTokenResponse(id, accountId);
+  }
+
+  @Get(':id/replay')
+  @ApiOperation({ summary: 'Get the replay playback descriptor for a session' })
+  getReplay(
+    @CurrentAccount('id') accountId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<LiveReplayResponse> {
+    return this.liveService.getReplay(id, accountId);
   }
 
   @Post(':id/start')
