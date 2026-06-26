@@ -32,6 +32,7 @@ import { KinshipCheckModule } from './modules/kinship-check/kinship-check.module
 import { AlbumsModule } from './modules/albums/albums.module';
 import { MemorialModule } from './modules/memorial/memorial.module';
 import { OralHistoryModule } from './modules/oral-history/oral-history.module';
+import { LiveModule } from './modules/live/live.module';
 import { SearchModule } from './search/search.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -83,6 +84,7 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     AlbumsModule,
     MemorialModule,
     OralHistoryModule,
+    LiveModule,
     SearchModule,
   ],
   providers: [

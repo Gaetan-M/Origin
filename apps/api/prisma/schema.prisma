@@ -1137,3 +1137,102 @@ model MemorialTribute {
   @@index([authorAccountId], map: "idx_memorial_tributes_author")
   @@map("memorial_tributes")
 }
+
+// ============================================
+// PHASE 5 — LIVE (the engagement accelerator)
+// Additive models for real-time audio-first LIVE sessions built on LiveKit
+// Cloud (managed SFU). Two worlds:
+//   - PRIVATE/FAMILY lives (funerals, ceremonies, family councils) — bounded
+//     by visible_max_degree around subject_person_id (GraphDegreeService).
+//   - PUBLIC lives (language lessons, cooking, storytelling, masterclasses)
+//     hosted by VERIFIED authorities/experts, open to any authenticated user.
+// Sessions are systematically RECORDED; the recording (recording_media_id)
+// becomes a REPLAY that, once published, feeds the public/family feed
+// (solving cold-start). LiveKit access is via short-lived tokens minted
+// server-side and is fully gated on env creds (graceful "not configured").
+//
+// Cross-aggregate references (Account / CulturalAuthority / Person / Media)
+// are kept as plain scalar UUID columns here; the real FOREIGN KEY constraints
+// are declared in the hand-written migration, keeping the change additive on
+// the existing Account / CulturalAuthority / Person / Media models (no
+// back-relation fields required on them). The relation strictly between the
+// two new models (LiveSession <-> LiveParticipant) is a full Prisma relation.
+// Soft-delete on LiveSession; mutations write a Contribution audit row
+// (enforced in services).
+// ============================================
+
+enum LiveSessionStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+
+  @@map("live_session_status")
+}
+
+enum LiveSessionKind {
+  CEREMONY
+  FAMILY_COUNCIL
+  LESSON
+  STORYTELLING
+  MASTERCLASS
+  OTHER
+
+  @@map("live_session_kind")
+}
+
+// A real-time LIVE session. host_account_id is the broadcaster; for PUBLIC
+// LESSON/MASTERCLASS the host may act as a verified CulturalAuthority
+// (host_authority_id). For PRIVATE/FAMILY ceremonies, subject_person_id is the
+// person the live concerns AND the OWNER personId used by
+// VisibilityGuard/GraphDegreeService for FAMILY-scope, degree-bounded access.
+// room_name is the unique LiveKit room. recording_media_id is the replay
+// recording; replay_published gates whether it has been surfaced to the feed.
+model LiveSession {
+  id                 String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  hostAccountId      String            @map("host_account_id") @db.Uuid
+  hostAuthorityId    String?           @map("host_authority_id") @db.Uuid
+  title              String            @db.VarChar(200)
+  description        String?
+  kind               LiveSessionKind
+  visibilityScope    VisibilityScope   @default(FAMILY) @map("visibility_scope")
+  visibleMaxDegree   Int?              @map("visible_max_degree")
+  subjectPersonId    String?           @map("subject_person_id") @db.Uuid
+  roomName           String            @unique @map("room_name") @db.VarChar(120)
+  status             LiveSessionStatus @default(SCHEDULED)
+  scheduledAt        DateTime?         @map("scheduled_at") @db.Timestamptz()
+  startedAt          DateTime?         @map("started_at") @db.Timestamptz()
+  endedAt            DateTime?         @map("ended_at") @db.Timestamptz()
+  recordingMediaId   String?           @map("recording_media_id") @db.Uuid
+  replayPublished    Boolean           @default(false) @map("replay_published")
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt          DateTime?         @map("deleted_at") @db.Timestamptz()
+
+  participants LiveParticipant[]
+
+  @@index([status, scheduledAt], map: "idx_live_sessions_status_scheduled")
+  @@index([hostAccountId], map: "idx_live_sessions_host_account")
+  @@index([visibilityScope], map: "idx_live_sessions_visibility")
+  @@index([subjectPersonId], map: "idx_live_sessions_subject_person")
+  @@map("live_sessions")
+}
+
+// A participant in a LIVE session. role is a free-form short string
+// ('host' | 'speaker' | 'viewer'). joined_at/left_at track presence; a row is
+// unique per (session, account).
+model LiveParticipant {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  liveSessionId String    @map("live_session_id") @db.Uuid
+  accountId     String    @map("account_id") @db.Uuid
+  role          String    @db.VarChar(20)
+  joinedAt      DateTime? @map("joined_at") @db.Timestamptz()
+  leftAt        DateTime? @map("left_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([liveSessionId, accountId], map: "uq_live_participant_session_account")
+  @@index([liveSessionId], map: "idx_live_participants_session")
+  @@map("live_participants")
+}
