@@ -30,6 +30,19 @@ import 'package:origin_mobile/features/family_tree/presentation/screens/tree_scr
 // Home shell — provided by Agent 5.
 import 'package:origin_mobile/features/home_shell/presentation/home_shell.dart';
 
+// Phases 2-6 features.
+import 'package:origin_mobile/features/discover/presentation/screens/discover_screen.dart';
+import 'package:origin_mobile/features/kinship_check/presentation/screens/are_we_related_screen.dart';
+import 'package:origin_mobile/features/memory/presentation/screens/albums_screen.dart';
+import 'package:origin_mobile/features/memory/presentation/screens/album_detail_screen.dart';
+import 'package:origin_mobile/features/memory/presentation/screens/memorial_screen.dart';
+import 'package:origin_mobile/features/live/presentation/screens/lives_screen.dart';
+import 'package:origin_mobile/features/live/presentation/screens/schedule_live_screen.dart';
+import 'package:origin_mobile/features/live/presentation/screens/live_room_screen.dart';
+import 'package:origin_mobile/features/explore/presentation/screens/tourism_screen.dart';
+import 'package:origin_mobile/features/explore/presentation/screens/learn_screen.dart';
+import 'package:origin_mobile/features/explore/presentation/screens/lesson_view_screen.dart';
+
 // Identity documents — provided by Agent 6.
 import 'package:origin_mobile/features/identity_documents/presentation/screens/identity_doc_add_screen.dart';
 
@@ -183,6 +196,82 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
         ],
+      ),
+
+      // ── Phases 2-6 features ──
+      GoRoute(
+        path: RoutePaths.discover,
+        name: 'discover',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DiscoverScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.areWeRelated,
+        name: 'are-we-related',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AreWeRelatedScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.albums,
+        name: 'albums',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AlbumsScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.albumDetailPattern,
+        name: 'album-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => AlbumDetailScreen(
+          albumId: state.pathParameters['id'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.memorialPattern,
+        name: 'memorial',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => MemorialScreen(
+          personId: state.pathParameters['personId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.livesNew,
+        name: 'lives-new',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ScheduleLiveScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.lives,
+        name: 'lives',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LivesScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.liveRoomPattern,
+        name: 'live-room',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => LiveRoomScreen(
+          sessionId: state.pathParameters['id'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.tourism,
+        name: 'tourism',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TourismScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.lessonViewPattern,
+        name: 'lesson-view',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => LessonViewScreen(
+          lessonId: state.pathParameters['id'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.learn,
+        name: 'learn',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LearnScreen(),
       ),
 
       // ── Persons ──

@@ -26,6 +26,23 @@ abstract final class RoutePaths {
   static const String homeNotifications = '/home/notifications';
   static const String homeProfile = '/home/profile';
 
+  // ────────────── Phases 2-6 features ──────────────
+  static const String discover = '/discover';
+  static const String areWeRelated = '/are-we-related';
+  static const String albums = '/albums';
+  static const String albumDetailPattern = '/albums/:id';
+  static String albumDetail(String id) => '/albums/$id';
+  static const String memorialPattern = '/memorial/:personId';
+  static String memorial(String personId) => '/memorial/$personId';
+  static const String lives = '/lives';
+  static const String livesNew = '/lives/new';
+  static const String liveRoomPattern = '/lives/:id';
+  static String liveRoom(String id) => '/lives/$id';
+  static const String tourism = '/tourism';
+  static const String learn = '/learn';
+  static const String lessonViewPattern = '/learn/:id';
+  static String lessonView(String id) => '/learn/$id';
+
   // ────────────── Persons ──────────────
   static const String personNew = '/persons/new';
   static const String personDetailPattern = '/persons/:id';

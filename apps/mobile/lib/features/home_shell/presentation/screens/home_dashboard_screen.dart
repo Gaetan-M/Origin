@@ -107,6 +107,11 @@ class HomeDashboardScreen extends ConsumerWidget {
             // Suggested gesture
             const _SuggestedGestureCard(),
             const SizedBox(height: OriginSpacing.lg),
+            // Explore — entry points to the phase 2-6 universes.
+            const SectionHeader(title: 'Explorer'),
+            const SizedBox(height: OriginSpacing.sm),
+            const _ExploreRow(),
+            const SizedBox(height: OriginSpacing.lg),
             // Recent activity
             SectionHeader(
               title: 'Récemment',
@@ -546,6 +551,65 @@ class _MatchCallout extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Horizontal shortcuts to the phase 2-6 feature universes. Keeps every new
+/// feature reachable from the dashboard even though the bottom bar is full.
+class _ExploreRow extends StatelessWidget {
+  const _ExploreRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(IconData, String, String)>[
+      (Icons.explore_outlined, 'Découvrir', RoutePaths.discover),
+      (Icons.diversity_1_outlined, 'Parents ?', RoutePaths.areWeRelated),
+      (Icons.photo_library_outlined, 'Albums', RoutePaths.albums),
+      (Icons.sensors_outlined, 'En direct', RoutePaths.lives),
+      (Icons.school_outlined, 'Apprendre', RoutePaths.learn),
+      (Icons.place_outlined, 'Tourisme', RoutePaths.tourism),
+    ];
+    return SizedBox(
+      height: 92,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: OriginSpacing.sm),
+        itemBuilder: (context, i) {
+          final (icon, label, path) = items[i];
+          return InkWell(
+            onTap: () => context.push(path),
+            borderRadius: BorderRadius.circular(OriginRadius.md),
+            child: SizedBox(
+              width: 76,
+              child: Column(
+                children: <Widget>[
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: OriginColors.offWhite,
+                      borderRadius: BorderRadius.circular(OriginRadius.md),
+                      border: Border.all(color: OriginColors.sand),
+                    ),
+                    child: Icon(icon, color: OriginColors.deepBlue, size: 26),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: OriginTextStyles.micro
+                        .copyWith(color: OriginColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
